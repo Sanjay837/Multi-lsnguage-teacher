@@ -1,0 +1,165 @@
+import { useAuth } from '@/hooks/useAuth';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
+import { useNavigate } from 'react-router-dom';
+import { motion } from 'framer-motion';
+import { BookOpen, Flame, Star, ArrowRight, Sparkles } from 'lucide-react';
+import { Card } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Progress } from '@/components/ui/progress';
+import type { Lesson, UserProgress } from '@/lib/types';
+
+export default function Home() {
+  const { profile } = useAuth();
+  const navigate = useNavigate();
+
+  const { data: targetLang } = useQuery({
+    queryKey: ['target-language', profile?.target_language_id],
+    queryFn: async () => {
+      if (!profile?.target_language_id) return null;
+      const { data } = await supabase
+        .from('languages')
+        .select('*')
+        .eq('id', profile.target_language_id)
+        .single();
+      return data;
+    },
+    enabled: !!profile?.target_language_id,
+  });
+
+  const { data: lessons } = useQuery({
+    queryKey: ['lessons', profile?.target_language_id],
+    queryFn: async () => {
+      if (!profile?.target_language_id) return [];
+      const { data } = await supabase
+        .from('lessons')
+        .select('*')
+        .eq('language_id', profile.target_language_id)
+        .eq('is_published', true)
+        .order('order_index');
+      return (data || []) as unknown as Lesson[];
+    },
+    enabled: !!profile?.target_language_id,
+  });
+
+  const { data: progress } = useQuery({
+    queryKey: ['user-progress'],
+    queryFn: async () => {
+      const { data } = await supabase.from('user_progress').select('*');
+      return (data || []) as unknown as UserProgress[];
+    },
+  });
+
+  const completedCount = progress?.filter(p => p.completed).length || 0;
+  const totalLessons = lessons?.length || 1;
+  const progressPercent = Math.round((completedCount / totalLessons) * 100);
+
+  const nextLesson = lessons?.find(l => !progress?.some(p => p.lesson_id === l.id && p.completed));
+
+  if (!profile?.target_language_id) {
+    return (
+      <div className="px-4 pt-12">
+        <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} className="text-center">
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-hero mb-4">
+            <BookOpen className="w-8 h-8 text-primary-foreground" />
+          </div>
+          <h1 className="text-2xl font-bold mb-2">Welcome to BhashaLearn!</h1>
+          <p className="text-muted-foreground mb-6">Choose a language to start learning</p>
+          <Button onClick={() => navigate('/profile')} className="bg-gradient-primary">
+            Choose Language <ArrowRight className="w-4 h-4 ml-2" />
+          </Button>
+        </motion.div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="px-4 pt-8 space-y-6">
+      {/* Header */}
+      <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}>
+        <p className="text-muted-foreground text-sm">Hello, {profile?.display_name || 'Learner'} 👋</p>
+        <h1 className="text-xl font-bold mt-1">
+          Learning {targetLang?.native_name || 'Language'} {targetLang?.flag_emoji}
+        </h1>
+      </motion.div>
+
+      {/* Stats Row */}
+      <motion.div
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.1 }}
+        className="grid grid-cols-3 gap-3"
+      >
+        <Card className="p-3 text-center shadow-card">
+          <Flame className="w-5 h-5 mx-auto text-accent mb-1" />
+          <p className="text-lg font-bold">{profile?.streak_days || 0}</p>
+          <p className="text-[10px] text-muted-foreground">Day Streak</p>
+        </Card>
+        <Card className="p-3 text-center shadow-card">
+          <Star className="w-5 h-5 mx-auto text-warning mb-1" />
+          <p className="text-lg font-bold">{profile?.total_xp || 0}</p>
+          <p className="text-[10px] text-muted-foreground">Total XP</p>
+        </Card>
+        <Card className="p-3 text-center shadow-card">
+          <BookOpen className="w-5 h-5 mx-auto text-primary mb-1" />
+          <p className="text-lg font-bold">{completedCount}</p>
+          <p className="text-[10px] text-muted-foreground">Completed</p>
+        </Card>
+      </motion.div>
+
+      {/* Progress */}
+      <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }}>
+        <Card className="p-4 shadow-card">
+          <div className="flex justify-between items-center mb-2">
+            <span className="text-sm font-medium">Course Progress</span>
+            <span className="text-xs text-muted-foreground">{progressPercent}%</span>
+          </div>
+          <Progress value={progressPercent} className="h-2" />
+        </Card>
+      </motion.div>
+
+      {/* Continue Learning */}
+      {nextLesson && (
+        <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
+          <h2 className="text-sm font-semibold text-muted-foreground mb-2">Continue Learning</h2>
+          <Card
+            className="p-4 shadow-elevated cursor-pointer hover:shadow-lg transition-shadow border-primary/20"
+            onClick={() => navigate(`/lessons/${nextLesson.id}`)}
+          >
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="font-semibold">{nextLesson.title}</p>
+                <p className="text-xs text-muted-foreground mt-0.5">{nextLesson.description}</p>
+                <div className="flex items-center gap-2 mt-2">
+                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-primary/10 text-primary font-medium">
+                    Level {nextLesson.difficulty_level}
+                  </span>
+                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-secondary text-secondary-foreground font-medium capitalize">
+                    {nextLesson.category}
+                  </span>
+                </div>
+              </div>
+              <ArrowRight className="w-5 h-5 text-primary flex-shrink-0" />
+            </div>
+          </Card>
+        </motion.div>
+      )}
+
+      {/* AI Practice */}
+      <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }}>
+        <Card
+          className="p-4 bg-gradient-hero text-primary-foreground cursor-pointer hover:opacity-95 transition-opacity"
+          onClick={() => navigate('/ai-chat')}
+        >
+          <div className="flex items-center gap-3">
+            <Sparkles className="w-8 h-8" />
+            <div>
+              <p className="font-semibold">Practice with AI</p>
+              <p className="text-xs opacity-80">Have a conversation and get instant feedback</p>
+            </div>
+          </div>
+        </Card>
+      </motion.div>
+    </div>
+  );
+}
