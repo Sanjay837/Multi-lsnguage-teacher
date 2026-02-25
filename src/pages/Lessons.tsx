@@ -1,11 +1,12 @@
+import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { CheckCircle, Lock, BookOpen } from 'lucide-react';
+import { CheckCircle, BookOpen } from 'lucide-react';
 import type { Lesson, UserProgress } from '@/lib/types';
 
 const difficultyColors: Record<number, string> = {
@@ -19,6 +20,9 @@ const difficultyColors: Record<number, string> = {
 export default function Lessons() {
   const { profile } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const initialCategory = searchParams.get('category') || 'all';
+  const [selectedCategory, setSelectedCategory] = useState(initialCategory);
 
   const { data: lessons, isLoading } = useQuery({
     queryKey: ['lessons', profile?.target_language_id],
@@ -43,6 +47,11 @@ export default function Lessons() {
     },
   });
 
+  const categories = ['all', ...Array.from(new Set(lessons?.map(l => l.category) || []))];
+  const filteredLessons = selectedCategory === 'all'
+    ? lessons
+    : lessons?.filter(l => l.category === selectedCategory);
+
   const isCompleted = (lessonId: string) => progress?.some(p => p.lesson_id === lessonId && p.completed);
   const getScore = (lessonId: string) => progress?.find(p => p.lesson_id === lessonId);
 
@@ -62,6 +71,23 @@ export default function Lessons() {
         <p className="text-sm text-muted-foreground">Master each lesson step by step</p>
       </div>
 
+      {/* Category Filter */}
+      <div className="flex gap-2 overflow-x-auto pb-1 -mx-4 px-4 scrollbar-hide">
+        {categories.map(cat => (
+          <button
+            key={cat}
+            onClick={() => setSelectedCategory(cat)}
+            className={`px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-all ${
+              selectedCategory === cat
+                ? 'bg-primary text-primary-foreground'
+                : 'bg-secondary text-secondary-foreground hover:bg-secondary/80'
+            }`}
+          >
+            <span className="capitalize">{cat}</span>
+          </button>
+        ))}
+      </div>
+
       {isLoading ? (
         <div className="space-y-3">
           {[1, 2, 3].map(i => (
@@ -73,7 +99,7 @@ export default function Lessons() {
         </div>
       ) : (
         <div className="space-y-3">
-          {lessons?.map((lesson, index) => {
+          {filteredLessons?.map((lesson, index) => {
             const completed = isCompleted(lesson.id);
             const scoreData = getScore(lesson.id);
             return (
@@ -119,6 +145,9 @@ export default function Lessons() {
               </motion.div>
             );
           })}
+          {filteredLessons?.length === 0 && (
+            <p className="text-center text-muted-foreground text-sm py-8">No lessons in this category yet</p>
+          )}
         </div>
       )}
     </div>

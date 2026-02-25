@@ -2,3 +2,6 @@ project_id = "sxcajosbokdvycddgavj"
 
 [functions.ai-chat]
 verify_jwt = false
+
+[functions.ai-teacher]
+verify_jwt = false

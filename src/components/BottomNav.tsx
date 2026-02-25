@@ -1,13 +1,13 @@
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Home, BookOpen, MessageCircle, BarChart3, User } from 'lucide-react';
+import { Home, BookOpen, MessageCircle, GraduationCap, BarChart3 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const navItems = [
   { path: '/', icon: Home, label: 'Home' },
   { path: '/lessons', icon: BookOpen, label: 'Lessons' },
-  { path: '/ai-chat', icon: MessageCircle, label: 'AI Chat' },
+  { path: '/ai-chat', icon: MessageCircle, label: 'Chat' },
+  { path: '/ai-teacher', icon: GraduationCap, label: 'Teacher' },
   { path: '/progress', icon: BarChart3, label: 'Progress' },
-  { path: '/profile', icon: User, label: 'Profile' },
 ];
 
 export default function BottomNav() {
