@@ -1,14 +1,17 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Card } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
-import { BarChart3, Clock, Target, TrendingUp, AlertTriangle } from 'lucide-react';
-import type { UserProgress } from '@/lib/types';
+import { BarChart3, Clock, Target, TrendingUp, AlertTriangle, Lightbulb, ArrowRight, GraduationCap } from 'lucide-react';
+import type { UserProgress, Lesson } from '@/lib/types';
 
 export default function ProgressPage() {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
+  const navigate = useNavigate();
 
   const { data: progress } = useQuery({
     queryKey: ['user-progress'],
@@ -16,6 +19,21 @@ export default function ProgressPage() {
       const { data } = await supabase.from('user_progress').select('*');
       return (data || []) as unknown as UserProgress[];
     },
+  });
+
+  const { data: lessons } = useQuery({
+    queryKey: ['lessons', profile?.target_language_id],
+    queryFn: async () => {
+      if (!profile?.target_language_id) return [];
+      const { data } = await supabase
+        .from('lessons')
+        .select('*')
+        .eq('language_id', profile.target_language_id)
+        .eq('is_published', true)
+        .order('order_index');
+      return (data || []) as unknown as Lesson[];
+    },
+    enabled: !!profile?.target_language_id,
   });
 
   const { data: aiCount } = useQuery({
@@ -28,8 +46,17 @@ export default function ProgressPage() {
     },
   });
 
+  const { data: correctionCount } = useQuery({
+    queryKey: ['grammar-correction-count'],
+    queryFn: async () => {
+      const { count } = await supabase
+        .from('grammar_corrections' as any)
+        .select('*', { count: 'exact', head: true });
+      return count || 0;
+    },
+  });
+
   const totalCompleted = progress?.filter(p => p.completed).length || 0;
-  const totalScore = progress?.reduce((sum, p) => sum + p.score, 0) || 0;
   const totalTime = progress?.reduce((sum, p) => sum + p.time_spent_seconds, 0) || 0;
   const avgScore = totalCompleted > 0
     ? Math.round(progress!.filter(p => p.completed).reduce((sum, p) => sum + (p.max_score > 0 ? (p.score / p.max_score) * 100 : 0), 0) / totalCompleted)
@@ -39,9 +66,28 @@ export default function ProgressPage() {
   const allIncorrect = progress?.flatMap(p => (p.incorrect_words || []) as string[]) || [];
   const wordCounts: Record<string, number> = {};
   allIncorrect.forEach(w => { wordCounts[w] = (wordCounts[w] || 0) + 1; });
-  const topIncorrect = Object.entries(wordCounts)
-    .sort(([, a], [, b]) => b - a)
-    .slice(0, 5);
+  const topIncorrect = Object.entries(wordCounts).sort(([, a], [, b]) => b - a).slice(0, 5);
+
+  // Suggested lessons (incomplete ones, prioritize low scores)
+  const suggestedLessons = lessons?.filter(l => {
+    const p = progress?.find(pr => pr.lesson_id === l.id);
+    return !p?.completed;
+  }).slice(0, 3) || [];
+
+  // Weak categories
+  const categoryScores: Record<string, { total: number; count: number }> = {};
+  lessons?.forEach(l => {
+    const p = progress?.find(pr => pr.lesson_id === l.id && pr.completed);
+    if (p && p.max_score > 0) {
+      if (!categoryScores[l.category]) categoryScores[l.category] = { total: 0, count: 0 };
+      categoryScores[l.category].total += (p.score / p.max_score) * 100;
+      categoryScores[l.category].count += 1;
+    }
+  });
+  const weakCategories = Object.entries(categoryScores)
+    .map(([cat, { total, count }]) => ({ category: cat, avg: Math.round(total / count) }))
+    .filter(c => c.avg < 80)
+    .sort((a, b) => a.avg - b.avg);
 
   const formatTime = (s: number) => {
     const m = Math.floor(s / 60);
@@ -49,7 +95,7 @@ export default function ProgressPage() {
   };
 
   return (
-    <div className="px-4 pt-8 space-y-6">
+    <div className="px-4 pt-8 space-y-6 pb-4">
       <div>
         <h1 className="text-xl font-bold">Your Progress</h1>
         <p className="text-sm text-muted-foreground">Track your learning journey</p>
@@ -61,7 +107,7 @@ export default function ProgressPage() {
           { icon: Target, label: 'Lessons Done', value: totalCompleted, color: 'text-primary' },
           { icon: TrendingUp, label: 'Avg Score', value: `${avgScore}%`, color: 'text-success' },
           { icon: Clock, label: 'Total Time', value: formatTime(totalTime), color: 'text-info' },
-          { icon: BarChart3, label: 'AI Sessions', value: aiCount || 0, color: 'text-accent' },
+          { icon: GraduationCap, label: 'Corrections', value: correctionCount || 0, color: 'text-accent' },
         ].map(({ icon: Icon, label, value, color }, i) => (
           <motion.div key={label} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}>
             <Card className="p-4 shadow-card">
@@ -89,13 +135,70 @@ export default function ProgressPage() {
                 </div>
               ))}
             </div>
+            <Button
+              variant="outline"
+              size="sm"
+              className="w-full mt-3"
+              onClick={() => navigate('/ai-teacher')}
+            >
+              Practice weak words with AI Teacher
+            </Button>
           </Card>
+        </motion.div>
+      )}
+
+      {/* Weak Categories */}
+      {weakCategories.length > 0 && (
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }}>
+          <Card className="p-4 shadow-card">
+            <div className="flex items-center gap-2 mb-3">
+              <Lightbulb className="w-4 h-4 text-accent" />
+              <h3 className="text-sm font-semibold">Areas to Improve</h3>
+            </div>
+            <div className="space-y-3">
+              {weakCategories.map(({ category, avg }) => (
+                <div key={category}>
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-sm capitalize">{category}</span>
+                    <span className="text-xs text-muted-foreground">{avg}%</span>
+                  </div>
+                  <Progress value={avg} className="h-1.5" />
+                </div>
+              ))}
+            </div>
+          </Card>
+        </motion.div>
+      )}
+
+      {/* Suggested Lessons */}
+      {suggestedLessons.length > 0 && (
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
+          <h3 className="text-sm font-semibold mb-2">Recommended Next</h3>
+          <div className="space-y-2">
+            {suggestedLessons.map(lesson => (
+              <Card
+                key={lesson.id}
+                className="p-3 shadow-card cursor-pointer hover:shadow-elevated transition-shadow"
+                onClick={() => navigate(`/lessons/${lesson.id}`)}
+              >
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium">{lesson.title}</p>
+                    <p className="text-[10px] text-muted-foreground capitalize">
+                      {lesson.category} · Level {lesson.difficulty_level}
+                    </p>
+                  </div>
+                  <ArrowRight className="w-4 h-4 text-primary" />
+                </div>
+              </Card>
+            ))}
+          </div>
         </motion.div>
       )}
 
       {/* Recent Activity */}
       {progress && progress.length > 0 && (
-        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }}>
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.35 }}>
           <h3 className="text-sm font-semibold mb-2">Recent Lessons</h3>
           <div className="space-y-2">
             {progress.slice(-5).reverse().map(p => (

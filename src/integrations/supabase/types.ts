@@ -76,6 +76,50 @@ export type Database = {
         }
         Relationships: []
       }
+      grammar_corrections: {
+        Row: {
+          corrected_text: string
+          created_at: string
+          difficulty_level: number | null
+          explanation: string | null
+          grammar_rule: string | null
+          id: string
+          language_id: string | null
+          original_text: string
+          user_id: string
+        }
+        Insert: {
+          corrected_text: string
+          created_at?: string
+          difficulty_level?: number | null
+          explanation?: string | null
+          grammar_rule?: string | null
+          id?: string
+          language_id?: string | null
+          original_text: string
+          user_id: string
+        }
+        Update: {
+          corrected_text?: string
+          created_at?: string
+          difficulty_level?: number | null
+          explanation?: string | null
+          grammar_rule?: string | null
+          id?: string
+          language_id?: string | null
+          original_text?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "grammar_corrections_language_id_fkey"
+            columns: ["language_id"]
+            isOneToOne: false
+            referencedRelation: "languages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       languages: {
         Row: {
           code: string
@@ -116,6 +160,7 @@ export type Database = {
           id: string
           is_published: boolean | null
           language_id: string
+          lesson_type: string
           order_index: number | null
           title: string
           updated_at: string | null
@@ -129,6 +174,7 @@ export type Database = {
           id?: string
           is_published?: boolean | null
           language_id: string
+          lesson_type?: string
           order_index?: number | null
           title: string
           updated_at?: string | null
@@ -142,6 +188,7 @@ export type Database = {
           id?: string
           is_published?: boolean | null
           language_id?: string
+          lesson_type?: string
           order_index?: number | null
           title?: string
           updated_at?: string | null
