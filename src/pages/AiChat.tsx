@@ -5,8 +5,9 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { motion } from 'framer-motion';
-import { Send, Sparkles, Bot, User } from 'lucide-react';
+import { Send, Sparkles, Bot, User, Loader2, Trash2 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
+import { toast } from 'sonner';
 import type { ChatMessage } from '@/lib/types';
 
 export default function AiChat() {
@@ -14,11 +15,52 @@ export default function AiChat() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isLoadingHistory, setIsLoadingHistory] = useState(true);
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  // Load chat history on mount
+  useEffect(() => {
+    if (!user) return;
+    const loadHistory = async () => {
+      setIsLoadingHistory(true);
+      const { data, error } = await supabase
+        .from('chat_messages')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: true });
+
+      if (!error && data) {
+        setMessages(data.map((m: any) => ({ role: m.role as 'user' | 'assistant', content: m.message })));
+      }
+      setIsLoadingHistory(false);
+    };
+    loadHistory();
+  }, [user]);
 
   useEffect(() => {
     scrollRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
+
+  const saveMessage = async (role: 'user' | 'assistant', content: string) => {
+    if (!user) return;
+    await supabase.from('chat_messages').insert({
+      user_id: user.id,
+      role,
+      message: content,
+    });
+  };
+
+  const clearHistory = async () => {
+    if (!user) return;
+    const { error } = await supabase
+      .from('chat_messages')
+      .delete()
+      .eq('user_id', user.id);
+    if (!error) {
+      setMessages([]);
+      toast.success('Chat history cleared');
+    }
+  };
 
   const sendMessage = async () => {
     if (!input.trim() || isLoading) return;
@@ -28,9 +70,15 @@ export default function AiChat() {
     setInput('');
     setIsLoading(true);
 
+    // Save user message to DB
+    await saveMessage('user', userMsg.content);
+
     let assistantSoFar = '';
 
     try {
+      // Send only last 15 messages for context window
+      const contextMessages = allMessages.slice(-15);
+
       const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ai-chat`;
       const resp = await fetch(CHAT_URL, {
         method: 'POST',
@@ -39,14 +87,16 @@ export default function AiChat() {
           Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
         },
         body: JSON.stringify({
-          messages: allMessages,
+          messages: contextMessages,
           targetLanguage: profile?.target_language_id || null,
         }),
       });
 
       if (!resp.ok || !resp.body) {
         if (resp.status === 429) {
-          setMessages(prev => [...prev, { role: 'assistant', content: 'Rate limit reached. Please wait a moment and try again.' }]);
+          const errMsg = 'Rate limit reached. Please wait a moment and try again.';
+          setMessages(prev => [...prev, { role: 'assistant', content: errMsg }]);
+          await saveMessage('assistant', errMsg);
           setIsLoading(false);
           return;
         }
@@ -91,7 +141,12 @@ export default function AiChat() {
         }
       }
 
-      // Save interaction
+      // Save assistant response to DB
+      if (assistantSoFar) {
+        await saveMessage('assistant', assistantSoFar);
+      }
+
+      // Save interaction for analytics
       if (user) {
         await supabase.from('ai_interactions').insert({
           user_id: user.id,
@@ -99,15 +154,11 @@ export default function AiChat() {
           interaction_type: 'conversation',
           messages: [...allMessages, { role: 'assistant', content: assistantSoFar }] as any,
         });
-        await supabase.from('analytics_events').insert({
-          user_id: user.id,
-          event_type: 'ai_chat',
-          event_data: { message_count: allMessages.length + 1 } as any,
-        });
       }
     } catch (err) {
       console.error(err);
-      setMessages(prev => [...prev, { role: 'assistant', content: 'Sorry, something went wrong. Please try again.' }]);
+      const errMsg = 'Sorry, something went wrong. Please try again.';
+      setMessages(prev => [...prev, { role: 'assistant', content: errMsg }]);
     } finally {
       setIsLoading(false);
     }
@@ -116,7 +167,7 @@ export default function AiChat() {
   return (
     <div className="flex flex-col h-[calc(100vh-4rem)]">
       {/* Header */}
-      <div className="px-4 pt-6 pb-3">
+      <div className="px-4 pt-6 pb-3 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <div className="w-8 h-8 rounded-xl bg-gradient-hero flex items-center justify-center">
             <Sparkles className="w-4 h-4 text-primary-foreground" />
@@ -126,17 +177,27 @@ export default function AiChat() {
             <p className="text-[10px] text-muted-foreground">Practice conversations & get grammar help</p>
           </div>
         </div>
+        {messages.length > 0 && (
+          <Button variant="ghost" size="icon" className="text-muted-foreground" onClick={clearHistory}>
+            <Trash2 className="w-4 h-4" />
+          </Button>
+        )}
       </div>
 
       {/* Messages */}
       <div className="flex-1 overflow-y-auto px-4 space-y-3">
-        {messages.length === 0 && (
+        {isLoadingHistory ? (
+          <div className="text-center mt-12">
+            <Loader2 className="w-8 h-8 mx-auto text-muted-foreground/50 mb-3 animate-spin" />
+            <p className="text-sm text-muted-foreground">Loading chat history...</p>
+          </div>
+        ) : messages.length === 0 ? (
           <div className="text-center mt-12">
             <Bot className="w-12 h-12 mx-auto text-muted-foreground/50 mb-3" />
             <p className="text-sm text-muted-foreground">Start a conversation!</p>
             <p className="text-xs text-muted-foreground mt-1">Try: "Teach me basic greetings in Kannada"</p>
           </div>
-        )}
+        ) : null}
         {messages.map((msg, i) => (
           <motion.div
             key={i}
