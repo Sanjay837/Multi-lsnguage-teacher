@@ -13,6 +13,10 @@ import AiChat from "@/pages/AiChat";
 import AiTeacher from "@/pages/AiTeacher";
 import ProgressPage from "@/pages/ProgressPage";
 import ProfilePage from "@/pages/ProfilePage";
+import Flashcards from "@/pages/Flashcards";
+import Pronunciation from "@/pages/Pronunciation";
+import Scenarios from "@/pages/Scenarios";
+import Achievements from "@/pages/Achievements";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -47,6 +51,10 @@ const App = () => (
             <Route path="/ai-teacher" element={<ProtectedRoute><AiTeacher /></ProtectedRoute>} />
             <Route path="/progress" element={<ProtectedRoute><ProgressPage /></ProtectedRoute>} />
             <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
+            <Route path="/flashcards" element={<ProtectedRoute><Flashcards /></ProtectedRoute>} />
+            <Route path="/pronunciation" element={<ProtectedRoute><Pronunciation /></ProtectedRoute>} />
+            <Route path="/scenarios" element={<ProtectedRoute><Scenarios /></ProtectedRoute>} />
+            <Route path="/achievements" element={<ProtectedRoute><Achievements /></ProtectedRoute>} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </AuthProvider>

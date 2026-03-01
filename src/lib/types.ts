@@ -15,6 +15,7 @@ export interface Profile {
   target_language_id: string | null;
   streak_days: number;
   total_xp: number;
+  updated_at?: string | null;
 }
 
 export interface Lesson {
@@ -24,6 +25,7 @@ export interface Lesson {
   description: string | null;
   difficulty_level: number;
   category: string;
+  lesson_type: string;
   content: {
     words: Array<{
       word: string;
@@ -73,4 +75,29 @@ export interface AiInteraction {
 export interface ChatMessage {
   role: 'user' | 'assistant' | 'system';
   content: string;
+}
+
+export interface Flashcard {
+  id: string;
+  user_id: string;
+  word: string;
+  translation: string;
+  pronunciation: string | null;
+  language_id: string | null;
+  lesson_id: string | null;
+  difficulty: string;
+  review_count: number;
+  correct_count: number;
+  last_reviewed_at: string | null;
+  next_review_at: string | null;
+  created_at: string;
+}
+
+export interface Achievement {
+  id: string;
+  user_id: string;
+  badge_type: string;
+  badge_name: string;
+  badge_description: string | null;
+  earned_at: string;
 }

@@ -1,19 +1,21 @@
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
-import { ArrowLeft, ArrowRight, Volume2, CheckCircle, X } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Volume2, CheckCircle, X, Star } from 'lucide-react';
 import { toast } from 'sonner';
+import { awardXP, checkAchievements } from '@/lib/gamification';
 import type { Lesson, QuizQuestion } from '@/lib/types';
 
 export default function LessonDetail() {
   const { id } = useParams<{ id: string }>();
   const { user } = useAuth();
+  const queryClient = useQueryClient();
   const navigate = useNavigate();
   const [phase, setPhase] = useState<'learn' | 'quiz' | 'results'>('learn');
   const [wordIndex, setWordIndex] = useState(0);
@@ -90,11 +92,42 @@ export default function LessonDetail() {
       }, { onConflict: 'user_id,lesson_id' });
 
     if (!error) {
+      // Award XP based on score
+      const xpEarned = totalScore + (totalScore === maxScore ? 20 : 0);
+      await awardXP(user.id, xpEarned);
+      
+      // Check for new achievements
+      const newBadges = await checkAchievements(user.id);
+      if (newBadges && newBadges.length > 0) {
+        newBadges.forEach(b => toast.success(`🏆 Badge earned: ${b.name}!`));
+      }
+
+      // Auto-add incorrect words as flashcards
+      if (incorrectWords.length > 0 && lesson) {
+        const flashcardInserts = incorrectWords.map(word => {
+          const wordData = words.find(w => w.word === word || w.translation === word);
+          return {
+            user_id: user.id,
+            word: wordData?.word || word,
+            translation: wordData?.translation || word,
+            pronunciation: wordData?.pronunciation || null,
+            language_id: lesson.language_id,
+            lesson_id: id,
+            difficulty: 'hard' as const,
+          };
+        });
+        await supabase.from('flashcards').upsert(flashcardInserts, { onConflict: 'user_id,word,language_id', ignoreDuplicates: true });
+      }
+
+      toast.success(`+${xpEarned} XP earned!`);
+      queryClient.invalidateQueries({ queryKey: ['user-progress'] });
+      queryClient.invalidateQueries({ queryKey: ['flashcards'] });
+
       // Track analytics
       await supabase.from('analytics_events').insert({
         user_id: user.id,
         event_type: 'lesson_completed',
-        event_data: { lesson_id: id, score: totalScore, max_score: maxScore, time_spent: timeSpent } as any,
+        event_data: { lesson_id: id, score: totalScore, max_score: maxScore, time_spent: timeSpent, xp_earned: xpEarned } as any,
       });
     }
   };
