@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { BookOpen, Flame, Star, ArrowRight, Sparkles, GraduationCap, MessageSquare, Dumbbell, Briefcase } from 'lucide-react';
+import { BookOpen, Flame, Star, ArrowRight, Sparkles, GraduationCap, MessageSquare, Dumbbell, Briefcase, Layers, Mic, Theater, Trophy } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
@@ -149,7 +149,7 @@ export default function Home() {
         </motion.div>
       )}
 
-      {/* AI Features */}
+      {/* AI & Practice Features */}
       <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }} className="grid grid-cols-2 gap-3">
         <Card
           className="p-4 bg-gradient-hero text-primary-foreground cursor-pointer hover:opacity-95 transition-opacity"
@@ -166,6 +166,42 @@ export default function Home() {
           <GraduationCap className="w-6 h-6 mb-2" />
           <p className="font-semibold text-sm">AI Teacher</p>
           <p className="text-[10px] opacity-80">Grammar correction</p>
+        </Card>
+        <Card
+          className="p-3 shadow-card cursor-pointer hover:shadow-elevated transition-shadow"
+          onClick={() => navigate('/scenarios')}
+        >
+          <Theater className="w-5 h-5 text-primary mb-1" />
+          <p className="font-semibold text-sm">Scenarios</p>
+          <p className="text-[10px] text-muted-foreground">Real-life practice</p>
+        </Card>
+        <Card
+          className="p-3 shadow-card cursor-pointer hover:shadow-elevated transition-shadow"
+          onClick={() => navigate('/pronunciation')}
+        >
+          <Mic className="w-5 h-5 text-primary mb-1" />
+          <p className="font-semibold text-sm">Pronunciation</p>
+          <p className="text-[10px] text-muted-foreground">Speak & compare</p>
+        </Card>
+      </motion.div>
+
+      {/* Quick Access */}
+      <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.28 }} className="grid grid-cols-2 gap-3">
+        <Card
+          className="p-3 shadow-card cursor-pointer hover:shadow-elevated transition-shadow"
+          onClick={() => navigate('/flashcards')}
+        >
+          <Layers className="w-5 h-5 text-accent mb-1" />
+          <p className="font-semibold text-sm">Flashcards</p>
+          <p className="text-[10px] text-muted-foreground">Review vocabulary</p>
+        </Card>
+        <Card
+          className="p-3 shadow-card cursor-pointer hover:shadow-elevated transition-shadow"
+          onClick={() => navigate('/achievements')}
+        >
+          <Trophy className="w-5 h-5 text-accent mb-1" />
+          <p className="font-semibold text-sm">Achievements</p>
+          <p className="text-[10px] text-muted-foreground">Earn badges</p>
         </Card>
       </motion.div>
 

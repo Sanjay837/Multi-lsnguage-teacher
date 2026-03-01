@@ -14,6 +14,33 @@ export type Database = {
   }
   public: {
     Tables: {
+      achievements: {
+        Row: {
+          badge_description: string | null
+          badge_name: string
+          badge_type: string
+          earned_at: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          badge_description?: string | null
+          badge_name: string
+          badge_type: string
+          earned_at?: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          badge_description?: string | null
+          badge_name?: string
+          badge_type?: string
+          earned_at?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       ai_interactions: {
         Row: {
           created_at: string | null
@@ -99,6 +126,69 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      flashcards: {
+        Row: {
+          correct_count: number
+          created_at: string
+          difficulty: string
+          id: string
+          language_id: string | null
+          last_reviewed_at: string | null
+          lesson_id: string | null
+          next_review_at: string | null
+          pronunciation: string | null
+          review_count: number
+          translation: string
+          user_id: string
+          word: string
+        }
+        Insert: {
+          correct_count?: number
+          created_at?: string
+          difficulty?: string
+          id?: string
+          language_id?: string | null
+          last_reviewed_at?: string | null
+          lesson_id?: string | null
+          next_review_at?: string | null
+          pronunciation?: string | null
+          review_count?: number
+          translation: string
+          user_id: string
+          word: string
+        }
+        Update: {
+          correct_count?: number
+          created_at?: string
+          difficulty?: string
+          id?: string
+          language_id?: string | null
+          last_reviewed_at?: string | null
+          lesson_id?: string | null
+          next_review_at?: string | null
+          pronunciation?: string | null
+          review_count?: number
+          translation?: string
+          user_id?: string
+          word?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "flashcards_language_id_fkey"
+            columns: ["language_id"]
+            isOneToOne: false
+            referencedRelation: "languages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "flashcards_lesson_id_fkey"
+            columns: ["lesson_id"]
+            isOneToOne: false
+            referencedRelation: "lessons"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       grammar_corrections: {
         Row: {
