@@ -368,6 +368,39 @@ export type Database = {
           },
         ]
       }
+      pronunciation_practice: {
+        Row: {
+          accuracy_score: number
+          created_at: string
+          expected_sentence: string
+          id: string
+          mistake_words: Json
+          practice_type: string
+          spoken_sentence: string
+          user_id: string
+        }
+        Insert: {
+          accuracy_score?: number
+          created_at?: string
+          expected_sentence: string
+          id?: string
+          mistake_words?: Json
+          practice_type?: string
+          spoken_sentence: string
+          user_id: string
+        }
+        Update: {
+          accuracy_score?: number
+          created_at?: string
+          expected_sentence?: string
+          id?: string
+          mistake_words?: Json
+          practice_type?: string
+          spoken_sentence?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       quiz_questions: {
         Row: {
           correct_answer: string

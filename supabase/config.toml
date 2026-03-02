@@ -5,3 +5,6 @@ verify_jwt = false
 
 [functions.ai-teacher]
 verify_jwt = false
+
+[functions.pronunciation-feedback]
+verify_jwt = false
