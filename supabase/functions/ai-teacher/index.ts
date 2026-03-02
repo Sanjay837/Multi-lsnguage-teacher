@@ -28,7 +28,7 @@ serve(async (req) => {
     }
 
     const systemPrompts: Record<string, string> = {
-      correct: `You are BhashaLearn AI Teacher, an expert grammar correction assistant for Indian regional languages.
+      correct: `You are Native2Global AI Teacher, an expert grammar correction assistant for Indian regional languages.
 
 When the user writes a sentence:
 1. Check for grammar, spelling, and usage errors
@@ -47,7 +47,7 @@ Format your response as:
 
 Be encouraging and supportive. Keep explanations simple and clear.`,
 
-      practice: `You are BhashaLearn AI Teacher generating practice exercises.
+      practice: `You are Native2Global AI Teacher generating practice exercises.
 
 Based on the user's current level and mistakes, generate:
 1. 3 fill-in-the-blank sentences
@@ -58,7 +58,7 @@ Include answers at the bottom. Explain in both Kannada and English.
 Adapt difficulty based on what the user has been practicing.
 Keep it mobile-friendly with clear formatting.`,
 
-      explain: `You are BhashaLearn AI Teacher explaining grammar concepts.
+      explain: `You are Native2Global AI Teacher explaining grammar concepts.
 
 When the user asks about a grammar concept:
 1. Explain it simply in English

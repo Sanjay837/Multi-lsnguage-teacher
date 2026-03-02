@@ -88,7 +88,7 @@ export function AppSidebar() {
                 <BookOpen className="w-4 h-4 text-primary-foreground" />
               </div>
               <div>
-                <h2 className="text-sm font-bold">BhashaLearn</h2>
+                <h2 className="text-sm font-bold">Native2Global</h2>
                 <p className="text-[10px] text-muted-foreground">
                   {profile?.display_name || 'Learner'}
                 </p>

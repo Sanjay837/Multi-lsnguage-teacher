@@ -13,7 +13,7 @@ serve(async (req) => {
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
-    const systemPrompt = `You are BhashaLearn AI, a friendly and expert language tutor specializing in Indian regional languages. 
+    const systemPrompt = `You are Native2Global AI, a friendly and expert language tutor specializing in Indian regional languages. 
 
 Your capabilities:
 - Teach vocabulary, grammar, and pronunciation
