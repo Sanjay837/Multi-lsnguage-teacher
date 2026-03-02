@@ -48,7 +48,7 @@ export default function Auth() {
           <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-gradient-primary mb-4">
             <BookOpen className="w-7 h-7 text-primary-foreground" />
           </div>
-          <h1 className="text-2xl font-bold text-foreground">BhashaLearn</h1>
+          <h1 className="text-2xl font-bold text-foreground">Native2Global</h1>
           <p className="text-muted-foreground text-sm mt-1">Master regional languages with AI</p>
         </div>
 

@@ -42,7 +42,7 @@ export default function Scenarios() {
     let assistantSoFar = '';
     try {
       const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ai-chat`;
-      const systemMsg: ChatMessage = { role: 'system', content: `You are BhashaLearn Scenario Practice AI. ${scenario.prompt}\n\nRules:\n- Stay in character for the scenario\n- After each user response, gently correct any grammar mistakes\n- Provide the corrected version\n- Then continue the conversation\n- Keep it natural and progressive\n- Use markdown for formatting` };
+      const systemMsg: ChatMessage = { role: 'system', content: `You are Native2Global Scenario Practice AI. ${scenario.prompt}\n\nRules:\n- Stay in character for the scenario\n- After each user response, gently correct any grammar mistakes\n- Provide the corrected version\n- Then continue the conversation\n- Keep it natural and progressive\n- Use markdown for formatting` };
 
       const resp = await fetch(CHAT_URL, {
         method: 'POST',
