@@ -17,6 +17,7 @@ import Flashcards from "@/pages/Flashcards";
 import Pronunciation from "@/pages/Pronunciation";
 import Scenarios from "@/pages/Scenarios";
 import Achievements from "@/pages/Achievements";
+import AdminPanel from "@/pages/AdminPanel";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -55,6 +56,7 @@ const App = () => (
             <Route path="/pronunciation" element={<ProtectedRoute><Pronunciation /></ProtectedRoute>} />
             <Route path="/scenarios" element={<ProtectedRoute><Scenarios /></ProtectedRoute>} />
             <Route path="/achievements" element={<ProtectedRoute><Achievements /></ProtectedRoute>} />
+            <Route path="/admin" element={<ProtectedRoute><AdminPanel /></ProtectedRoute>} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </AuthProvider>

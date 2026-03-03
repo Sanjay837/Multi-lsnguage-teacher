@@ -5,6 +5,7 @@ export interface Language {
   native_name: string;
   flag_emoji: string;
   is_active: boolean;
+  is_rtl: boolean;
 }
 
 export interface Profile {
