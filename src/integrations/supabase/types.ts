@@ -241,6 +241,7 @@ export type Database = {
           flag_emoji: string | null
           id: string
           is_active: boolean | null
+          is_rtl: boolean
           name: string
           native_name: string
         }
@@ -250,6 +251,7 @@ export type Database = {
           flag_emoji?: string | null
           id?: string
           is_active?: boolean | null
+          is_rtl?: boolean
           name: string
           native_name: string
         }
@@ -259,6 +261,7 @@ export type Database = {
           flag_emoji?: string | null
           id?: string
           is_active?: boolean | null
+          is_rtl?: boolean
           name?: string
           native_name?: string
         }

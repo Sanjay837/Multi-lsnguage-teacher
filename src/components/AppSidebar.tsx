@@ -9,6 +9,7 @@ import {
   Mic,
   Theater,
   Trophy,
+  Settings,
 } from 'lucide-react';
 import { NavLink } from '@/components/NavLink';
 import { useLocation } from 'react-router-dom';
@@ -43,6 +44,7 @@ const trackingItems = [
   { title: 'Progress', url: '/progress', icon: BarChart3 },
   { title: 'Achievements', url: '/achievements', icon: Trophy },
   { title: 'Profile', url: '/profile', icon: User },
+  { title: 'Admin', url: '/admin', icon: Settings },
 ];
 
 export function AppSidebar() {
