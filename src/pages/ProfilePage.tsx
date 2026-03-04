@@ -13,6 +13,7 @@ import type { Language } from '@/lib/types';
 export default function ProfilePage() {
   const { profile, user, signOut, refreshProfile } = useAuth();
   const [displayName, setDisplayName] = useState(profile?.display_name || '');
+  const [nativeLang, setNativeLang] = useState(profile?.native_language_id || '');
   const [targetLang, setTargetLang] = useState(profile?.target_language_id || '');
   const [saving, setSaving] = useState(false);
 
