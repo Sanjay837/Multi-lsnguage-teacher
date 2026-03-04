@@ -6,7 +6,8 @@ import { motion } from 'framer-motion';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
-import { BarChart3, Clock, Target, TrendingUp, AlertTriangle, Lightbulb, ArrowRight, GraduationCap } from 'lucide-react';
+import { BarChart3, Clock, Target, TrendingUp, AlertTriangle, Lightbulb, ArrowRight, GraduationCap, Mic } from 'lucide-react';
+import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import type { UserProgress, Lesson } from '@/lib/types';
 
 export default function ProgressPage() {
