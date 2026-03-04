@@ -20,6 +20,7 @@ export default function ProfilePage() {
   useEffect(() => {
     if (profile) {
       setDisplayName(profile.display_name || '');
+      setNativeLang(profile.native_language_id || '');
       setTargetLang(profile.target_language_id || '');
     }
   }, [profile]);
