@@ -75,10 +75,34 @@ export default function ProfilePage() {
           <div>
             <label className="text-sm font-medium mb-1.5 block">
               <Globe className="w-4 h-4 inline mr-1" />
-              I want to learn
+              My native language
             </label>
             <div className="grid grid-cols-2 gap-2">
               {languages?.map((lang) => (
+                <button
+                  key={lang.id}
+                  onClick={() => setNativeLang(lang.id)}
+                  className={`p-3 rounded-xl border-2 text-left transition-all ${
+                    nativeLang === lang.id
+                      ? 'border-primary bg-primary/5'
+                      : 'border-border hover:border-primary/40'
+                  }`}
+                >
+                  <span className="text-lg">{lang.flag_emoji}</span>
+                  <p className="text-sm font-medium mt-1">{lang.name}</p>
+                  <p className="text-xs text-muted-foreground">{lang.native_name}</p>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <label className="text-sm font-medium mb-1.5 block">
+              <Globe className="w-4 h-4 inline mr-1" />
+              I want to learn
+            </label>
+            <div className="grid grid-cols-2 gap-2">
+              {languages?.filter(l => l.id !== nativeLang).map((lang) => (
                 <button
                   key={lang.id}
                   onClick={() => setTargetLang(lang.id)}

@@ -213,6 +213,28 @@ export default function ProgressPage() {
         </motion.div>
       )}
 
+      {/* Pronunciation Trends */}
+      {pronunciationHistory && pronunciationHistory.length > 2 && (
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.32 }}>
+          <Card className="p-4 shadow-card">
+            <div className="flex items-center gap-2 mb-3">
+              <Mic className="w-4 h-4 text-primary" />
+              <h3 className="text-sm font-semibold">Pronunciation Accuracy Trend</h3>
+            </div>
+            <div className="h-40">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={pronunciationHistory}>
+                  <XAxis dataKey="date" tick={{ fontSize: 10 }} />
+                  <YAxis domain={[0, 100]} tick={{ fontSize: 10 }} />
+                  <Tooltip formatter={(v: number) => `${v}%`} />
+                  <Line type="monotone" dataKey="accuracy" stroke="hsl(153, 60%, 40%)" strokeWidth={2} dot={{ r: 3 }} />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          </Card>
+        </motion.div>
+      )}
+
       {/* Recent Activity */}
       {progress && progress.length > 0 && (
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.35 }}>
