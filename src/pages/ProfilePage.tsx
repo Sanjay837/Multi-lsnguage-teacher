@@ -40,6 +40,7 @@ export default function ProfilePage() {
       .from('profiles')
       .update({
         display_name: displayName,
+        native_language_id: nativeLang || null,
         target_language_id: targetLang || null,
       })
       .eq('user_id', user.id);
