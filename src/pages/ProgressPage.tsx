@@ -57,6 +57,22 @@ export default function ProgressPage() {
     },
   });
 
+  const { data: pronunciationHistory } = useQuery({
+    queryKey: ['pronunciation-trends'],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('pronunciation_practice')
+        .select('accuracy_score, created_at')
+        .order('created_at', { ascending: true })
+        .limit(30);
+      return (data || []).map((d: any, i: number) => ({
+        session: i + 1,
+        accuracy: Number(d.accuracy_score),
+        date: new Date(d.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }),
+      }));
+    },
+  });
+
   const totalCompleted = progress?.filter(p => p.completed).length || 0;
   const totalTime = progress?.reduce((sum, p) => sum + p.time_spent_seconds, 0) || 0;
   const avgScore = totalCompleted > 0
