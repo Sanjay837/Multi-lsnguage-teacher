@@ -6,7 +6,8 @@ import { motion } from 'framer-motion';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
-import { BarChart3, Clock, Target, TrendingUp, AlertTriangle, Lightbulb, ArrowRight, GraduationCap } from 'lucide-react';
+import { BarChart3, Clock, Target, TrendingUp, AlertTriangle, Lightbulb, ArrowRight, GraduationCap, Mic } from 'lucide-react';
+import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import type { UserProgress, Lesson } from '@/lib/types';
 
 export default function ProgressPage() {
@@ -53,6 +54,22 @@ export default function ProgressPage() {
         .from('grammar_corrections' as any)
         .select('*', { count: 'exact', head: true });
       return count || 0;
+    },
+  });
+
+  const { data: pronunciationHistory } = useQuery({
+    queryKey: ['pronunciation-trends'],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('pronunciation_practice')
+        .select('accuracy_score, created_at')
+        .order('created_at', { ascending: true })
+        .limit(30);
+      return (data || []).map((d: any, i: number) => ({
+        session: i + 1,
+        accuracy: Number(d.accuracy_score),
+        date: new Date(d.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }),
+      }));
     },
   });
 
@@ -193,6 +210,28 @@ export default function ProgressPage() {
               </Card>
             ))}
           </div>
+        </motion.div>
+      )}
+
+      {/* Pronunciation Trends */}
+      {pronunciationHistory && pronunciationHistory.length > 2 && (
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.32 }}>
+          <Card className="p-4 shadow-card">
+            <div className="flex items-center gap-2 mb-3">
+              <Mic className="w-4 h-4 text-primary" />
+              <h3 className="text-sm font-semibold">Pronunciation Accuracy Trend</h3>
+            </div>
+            <div className="h-40">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={pronunciationHistory}>
+                  <XAxis dataKey="date" tick={{ fontSize: 10 }} />
+                  <YAxis domain={[0, 100]} tick={{ fontSize: 10 }} />
+                  <Tooltip formatter={(v: number) => `${v}%`} />
+                  <Line type="monotone" dataKey="accuracy" stroke="hsl(153, 60%, 40%)" strokeWidth={2} dot={{ r: 3 }} />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          </Card>
         </motion.div>
       )}
 
