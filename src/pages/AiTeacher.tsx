@@ -198,7 +198,7 @@ export default function AiTeacher() {
               {mode === 'practice' && 'Tell me a topic and I\'ll generate exercises'}
               {mode === 'explain' && 'Ask me about any grammar concept'}
             </p>
-            <p className="text-xs text-muted-foreground mt-1">Explanations in both English & Kannada</p>
+            <p className="text-xs text-muted-foreground mt-1">Explanations in English with target language examples</p>
           </div>
         )}
         {messages.map((msg, i) => (

@@ -31,7 +31,7 @@ export default function Lessons() {
       const { data } = await supabase
         .from('lessons')
         .select('*')
-        .eq('language_id', profile.target_language_id)
+        .or(`language_id.eq.${profile.target_language_id},language_to_id.eq.${profile.target_language_id}`)
         .eq('is_published', true)
         .order('order_index');
       return (data || []) as unknown as Lesson[];
