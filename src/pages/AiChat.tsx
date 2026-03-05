@@ -196,7 +196,7 @@ export default function AiChat() {
           <div className="text-center mt-12">
             <Bot className="w-12 h-12 mx-auto text-muted-foreground/50 mb-3" />
             <p className="text-sm text-muted-foreground">Start a conversation!</p>
-            <p className="text-xs text-muted-foreground mt-1">Try: "Teach me basic greetings in Kannada"</p>
+            <p className="text-xs text-muted-foreground mt-1">Try: "Teach me basic greetings"</p>
           </div>
         ) : null}
         {messages.map((msg, i) => (
