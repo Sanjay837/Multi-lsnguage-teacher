@@ -9,21 +9,26 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { expected, spoken, accuracy, mistakeWords } = await req.json();
+    const { expected, spoken, accuracy, mistakeWords, languageName, languageCode } = await req.json();
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
-    const systemPrompt = `You are a Kannada pronunciation coach for beginners learning Indian regional languages.
+    const lang = languageName || "the target language";
+
+    const systemPrompt = `You are a multilingual pronunciation coach helping beginners learn ${lang}.
 
 Given the expected text, spoken text, accuracy score, and mistake words, provide:
-1. A brief explanation of what went wrong (in Kannada + English)
-2. Pronunciation correction tips for each mistake word
-3. Exactly 2 similar practice sentences for the user to try next
+1. A brief explanation of what went wrong
+2. Phonetic breakdown and pronunciation correction tips for each mistake word
+3. Exactly 2 similar practice words/phrases for the user to try next
+4. If the language uses a non-Latin script, include both the native script and romanized pronunciation
 
 Keep responses concise, encouraging, and beginner-friendly.
-Format with markdown. Use bullet points for tips.`;
+Format with markdown. Use bullet points for tips.
+Explain tips in English for clarity.`;
 
-    const userPrompt = `Expected: "${expected}"
+    const userPrompt = `Language: ${lang} (${languageCode || 'unknown'})
+Expected: "${expected}"
 Spoken: "${spoken}"
 Accuracy: ${accuracy}%
 Mistake words: ${JSON.stringify(mistakeWords)}

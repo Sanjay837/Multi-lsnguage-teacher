@@ -7,81 +7,11 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Progress } from '@/components/ui/progress';
-import { Mic, MicOff, Volume2, RotateCcw, CheckCircle, XCircle, BookOpen, Loader2, Sparkles } from 'lucide-react';
+import { Mic, MicOff, Volume2, RotateCcw, CheckCircle, XCircle, Loader2, Sparkles, Globe } from 'lucide-react';
 import { toast } from 'sonner';
 import ReactMarkdown from 'react-markdown';
-import type { Lesson } from '@/lib/types';
-
-// --- Data ---
-
-const ALPHABET_DATA = [
-  { letter: 'ಅ', romanized: 'a', kannada: 'ಅಕಾರ - ಮೊದಲ ಸ್ವರ' },
-  { letter: 'ಆ', romanized: 'aa', kannada: 'ಆಕಾರ - ದೀರ್ಘ ಸ್ವರ' },
-  { letter: 'ಇ', romanized: 'i', kannada: 'ಇಕಾರ' },
-  { letter: 'ಈ', romanized: 'ee', kannada: 'ಈಕಾರ - ದೀರ್ಘ' },
-  { letter: 'ಉ', romanized: 'u', kannada: 'ಉಕಾರ' },
-  { letter: 'ಊ', romanized: 'oo', kannada: 'ಊಕಾರ - ದೀರ್ಘ' },
-  { letter: 'ಎ', romanized: 'e', kannada: 'ಎಕಾರ' },
-  { letter: 'ಏ', romanized: 'ae', kannada: 'ಏಕಾರ' },
-  { letter: 'ಐ', romanized: 'ai', kannada: 'ಐಕಾರ' },
-  { letter: 'ಒ', romanized: 'o', kannada: 'ಒಕಾರ' },
-  { letter: 'ಓ', romanized: 'oo', kannada: 'ಓಕಾರ' },
-  { letter: 'ಔ', romanized: 'au', kannada: 'ಔಕಾರ' },
-  { letter: 'ಕ', romanized: 'ka', kannada: 'ಕ ವರ್ಗದ ಮೊದಲ ಅಕ್ಷರ' },
-  { letter: 'ಖ', romanized: 'kha', kannada: 'ಮಹಾಪ್ರಾಣ' },
-  { letter: 'ಗ', romanized: 'ga', kannada: 'ಗ ಅಕ್ಷರ' },
-  { letter: 'ಘ', romanized: 'gha', kannada: 'ಘ ಅಕ್ಷರ' },
-  { letter: 'ಚ', romanized: 'cha', kannada: 'ಚ ವರ್ಗ' },
-  { letter: 'ಛ', romanized: 'chha', kannada: 'ಛ ಅಕ್ಷರ' },
-  { letter: 'ಜ', romanized: 'ja', kannada: 'ಜ ಅಕ್ಷರ' },
-  { letter: 'ಟ', romanized: 'ta', kannada: 'ಟ ವರ್ಗ' },
-  { letter: 'ಡ', romanized: 'da', kannada: 'ಡ ಅಕ್ಷರ' },
-  { letter: 'ತ', romanized: 'tha', kannada: 'ತ ವರ್ಗ' },
-  { letter: 'ದ', romanized: 'dha', kannada: 'ದ ಅಕ್ಷರ' },
-  { letter: 'ನ', romanized: 'na', kannada: 'ನ ಅಕ್ಷರ' },
-  { letter: 'ಪ', romanized: 'pa', kannada: 'ಪ ವರ್ಗ' },
-  { letter: 'ಫ', romanized: 'pha', kannada: 'ಫ ಅಕ್ಷರ' },
-  { letter: 'ಬ', romanized: 'ba', kannada: 'ಬ ಅಕ್ಷರ' },
-  { letter: 'ಮ', romanized: 'ma', kannada: 'ಮ ಅಕ್ಷರ' },
-  { letter: 'ಯ', romanized: 'ya', kannada: 'ಯ ಅಕ್ಷರ' },
-  { letter: 'ರ', romanized: 'ra', kannada: 'ರ ಅಕ್ಷರ' },
-  { letter: 'ಲ', romanized: 'la', kannada: 'ಲ ಅಕ್ಷರ' },
-  { letter: 'ವ', romanized: 'va', kannada: 'ವ ಅಕ್ಷರ' },
-  { letter: 'ಶ', romanized: 'sha', kannada: 'ಶ ಅಕ್ಷರ' },
-  { letter: 'ಸ', romanized: 'sa', kannada: 'ಸ ಅಕ್ಷರ' },
-  { letter: 'ಹ', romanized: 'ha', kannada: 'ಹ ಅಕ್ಷರ' },
-];
-
-const BASIC_WORDS = [
-  { word: 'ನಮಸ್ಕಾರ', romanized: 'namaskara', meaning: 'Hello / Greetings', kannada: 'ಶುಭಾಶಯ ಹೇಳಲು ಬಳಸುವ ಪದ' },
-  { word: 'ಧನ್ಯವಾದ', romanized: 'dhanyavaada', meaning: 'Thank you', kannada: 'ಕೃತಜ್ಞತೆ ತೋರಿಸಲು' },
-  { word: 'ಹೌದು', romanized: 'haudu', meaning: 'Yes', kannada: 'ಒಪ್ಪಿಗೆ ಸೂಚಿಸಲು' },
-  { word: 'ಇಲ್ಲ', romanized: 'illa', meaning: 'No', kannada: 'ನಿರಾಕರಿಸಲು' },
-  { word: 'ನೀರು', romanized: 'neeru', meaning: 'Water', kannada: 'ಕುಡಿಯುವ ನೀರು' },
-  { word: 'ಊಟ', romanized: 'oota', meaning: 'Meal / Food', kannada: 'ಆಹಾರ' },
-  { word: 'ಮನೆ', romanized: 'mane', meaning: 'House', kannada: 'ವಾಸಸ್ಥಳ' },
-  { word: 'ಹೆಸರು', romanized: 'hesaru', meaning: 'Name', kannada: 'ನಿಮ್ಮ ಹೆಸರು ಏನು?' },
-  { word: 'ಬನ್ನಿ', romanized: 'banni', meaning: 'Come', kannada: 'ಆಹ್ವಾನಿಸಲು' },
-  { word: 'ಹೋಗಿ', romanized: 'hogi', meaning: 'Go', kannada: 'ಹೊರಡಲು ಹೇಳಲು' },
-  { word: 'ಒಳ್ಳೆಯದು', romanized: 'olleyadu', meaning: 'Good', kannada: 'ಉತ್ತಮ ಎಂದು ಹೇಳಲು' },
-  { word: 'ದೊಡ್ಡ', romanized: 'dodda', meaning: 'Big', kannada: 'ಗಾತ್ರ ಹೆಚ್ಚು' },
-  { word: 'ಚಿಕ್ಕ', romanized: 'chikka', meaning: 'Small', kannada: 'ಗಾತ್ರ ಕಡಿಮೆ' },
-  { word: 'ಶಾಲೆ', romanized: 'shaale', meaning: 'School', kannada: 'ವಿದ್ಯಾಲಯ' },
-  { word: 'ಪುಸ್ತಕ', romanized: 'pustaka', meaning: 'Book', kannada: 'ಓದಲು ಬಳಸುವ ಪುಸ್ತಕ' },
-];
-
-const SENTENCES = [
-  { sentence: 'ನನ್ನ ಹೆಸರು ರಾಜು', romanized: 'nanna hesaru Raaju', meaning: 'My name is Raju', kannada: 'ಸ್ವಪರಿಚಯ ಮಾಡಿಕೊಳ್ಳಲು' },
-  { sentence: 'ನೀವು ಹೇಗಿದ್ದೀರಿ?', romanized: 'neevu hegiddiri?', meaning: 'How are you?', kannada: 'ಯೋಗಕ್ಷೇಮ ವಿಚಾರಿಸಲು' },
-  { sentence: 'ನನಗೆ ಕನ್ನಡ ಬರುತ್ತದೆ', romanized: 'nanage kannada baruttade', meaning: 'I know Kannada', kannada: 'ಭಾಷಾ ಜ್ಞಾನ ಹೇಳಲು' },
-  { sentence: 'ದಯವಿಟ್ಟು ನಿಧಾನವಾಗಿ ಮಾತಾಡಿ', romanized: 'dayavittu nidhaanavaagi maataadi', meaning: 'Please speak slowly', kannada: 'ನಿಧಾನವಾಗಿ ಮಾತಾಡಲು ಕೋರಲು' },
-  { sentence: 'ಇದರ ಬೆಲೆ ಎಷ್ಟು?', romanized: 'idara bele eshtu?', meaning: 'How much does this cost?', kannada: 'ಬೆಲೆ ಕೇಳಲು' },
-  { sentence: 'ನನಗೆ ಅರ್ಥವಾಗಲಿಲ್ಲ', romanized: 'nanage arthavaagalilla', meaning: "I didn't understand", kannada: 'ಅರ್ಥ ಆಗಲಿಲ್ಲ ಎಂದು ಹೇಳಲು' },
-  { sentence: 'ಶುಭ ಮುಂಜಾನೆ', romanized: 'shubha munjaane', meaning: 'Good morning', kannada: 'ಬೆಳಿಗ್ಗೆ ಶುಭಾಶಯ' },
-  { sentence: 'ಶುಭ ರಾತ್ರಿ', romanized: 'shubha raatri', meaning: 'Good night', kannada: 'ರಾತ್ರಿ ಶುಭಾಶಯ' },
-];
-
-// --- Types ---
+import { getPronunciationData, getSpeechLang, getTTSLang, type PronunciationItem } from '@/lib/pronunciation-data';
+import type { Language } from '@/lib/types';
 
 interface ComparisonResult {
   expected: string;
@@ -90,40 +20,50 @@ interface ComparisonResult {
   accuracy: number;
 }
 
-type PracticeItem = {
-  text: string;
-  romanized: string;
-  meaning: string;
-  kannada: string;
-};
-
-// --- Component ---
-
 export default function Pronunciation() {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState('alphabet');
-  const [selectedItem, setSelectedItem] = useState<PracticeItem | null>(null);
+  const [selectedItem, setSelectedItem] = useState<PronunciationItem | null>(null);
   const [isListening, setIsListening] = useState(false);
   const [transcript, setTranscript] = useState('');
   const [result, setResult] = useState<ComparisonResult | null>(null);
   const [error, setError] = useState('');
   const [aiFeedback, setAiFeedback] = useState('');
   const [loadingFeedback, setLoadingFeedback] = useState(false);
+  const [selectedLangId, setSelectedLangId] = useState<string>(profile?.target_language_id || '');
   const recognitionRef = useRef<any>(null);
   const transcriptRef = useRef('');
 
+  // Fetch all active languages
+  const { data: languages } = useQuery({
+    queryKey: ['languages-active'],
+    queryFn: async () => {
+      const { data } = await supabase.from('languages').select('*').eq('is_active', true).order('name');
+      return (data || []) as unknown as Language[];
+    },
+  });
+
+  // Get selected language details
+  const selectedLang = languages?.find(l => l.id === selectedLangId);
+  const langCode = selectedLang?.code || '';
+  const pronunciationData = getPronunciationData(langCode);
+
   // Fetch history
   const { data: history } = useQuery({
-    queryKey: ['pronunciation-history', user?.id],
+    queryKey: ['pronunciation-history', user?.id, selectedLangId],
     queryFn: async () => {
       if (!user) return [];
-      const { data } = await supabase
+      let query = supabase
         .from('pronunciation_practice')
         .select('*')
         .eq('user_id', user.id)
         .order('created_at', { ascending: false })
         .limit(20);
+      if (selectedLangId) {
+        query = query.eq('language_id', selectedLangId);
+      }
+      const { data } = await query;
       return data || [];
     },
     enabled: !!user,
@@ -142,16 +82,17 @@ export default function Pronunciation() {
         expected_sentence: data.expected,
         spoken_sentence: data.spoken,
         accuracy_score: data.accuracy,
-        mistake_words: data.mistakes,
+        mistake_words: data.mistakes as any,
         practice_type: activeTab,
-      });
+        language_id: selectedLangId || null,
+      } as any);
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['pronunciation-history'] }),
   });
 
   // AI feedback mutation
   const feedbackMutation = useMutation({
-    mutationFn: async (data: { expected: string; spoken: string; accuracy: number; mistakeWords: string[] }) => {
+    mutationFn: async (data: { expected: string; spoken: string; accuracy: number; mistakeWords: string[]; languageName: string; languageCode: string }) => {
       setLoadingFeedback(true);
       const { data: res, error } = await supabase.functions.invoke('pronunciation-feedback', {
         body: data,
@@ -172,10 +113,10 @@ export default function Pronunciation() {
 
   const speak = useCallback((text: string) => {
     const utterance = new SpeechSynthesisUtterance(text);
-    utterance.lang = 'kn-IN';
+    utterance.lang = getTTSLang(langCode);
     utterance.rate = 0.7;
     speechSynthesis.speak(utterance);
-  }, []);
+  }, [langCode]);
 
   const levenshtein = (a: string, b: string): number => {
     const matrix: number[][] = [];
@@ -218,7 +159,7 @@ export default function Pronunciation() {
     }
 
     const recognition = new SpeechRecognition();
-    recognition.lang = 'kn-IN';
+    recognition.lang = getSpeechLang(langCode);
     recognition.continuous = false;
     recognition.interimResults = true;
 
@@ -236,9 +177,15 @@ export default function Pronunciation() {
         setResult(res);
         const mistakes = res.words.filter(w => !w.correct).map(w => w.word);
         saveMutation.mutate({ expected: selectedItem.text, spoken: spokenText, accuracy: res.accuracy, mistakes });
-        // Auto-request AI feedback if accuracy < 100
         if (res.accuracy < 100) {
-          feedbackMutation.mutate({ expected: selectedItem.text, spoken: spokenText, accuracy: res.accuracy, mistakeWords: mistakes });
+          feedbackMutation.mutate({
+            expected: selectedItem.text,
+            spoken: spokenText,
+            accuracy: res.accuracy,
+            mistakeWords: mistakes,
+            languageName: selectedLang?.name || 'Unknown',
+            languageCode: langCode,
+          });
         }
       }
     };
@@ -258,14 +205,14 @@ export default function Pronunciation() {
     setIsListening(false);
   };
 
-  const selectItem = (item: PracticeItem) => {
+  const selectItem = (item: PronunciationItem) => {
     setSelectedItem(item);
     setResult(null);
     setTranscript('');
     setAiFeedback('');
   };
 
-  const renderItemGrid = (items: PracticeItem[], isAlphabet = false) => (
+  const renderItemGrid = (items: PronunciationItem[], isAlphabet = false) => (
     <div className={`grid ${isAlphabet ? 'grid-cols-4 sm:grid-cols-6' : 'grid-cols-1 sm:grid-cols-2'} gap-2`}>
       {items.map((item, i) => (
         <motion.div key={i} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.02 }}>
@@ -276,26 +223,59 @@ export default function Pronunciation() {
             <p className={`font-bold ${isAlphabet ? 'text-2xl text-center' : 'text-lg'}`}>{item.text}</p>
             {!isAlphabet && (
               <>
-                <p className="text-xs text-muted-foreground italic">{item.romanized}</p>
-                <p className="text-sm text-primary">{item.meaning}</p>
+                <p className="text-xs text-muted-foreground italic">{item.phonetic}</p>
+                <p className="text-sm text-primary">{item.translation}</p>
               </>
             )}
-            {isAlphabet && <p className="text-xs text-muted-foreground text-center">{item.romanized}</p>}
+            {isAlphabet && <p className="text-xs text-muted-foreground text-center">{item.phonetic}</p>}
           </Card>
         </motion.div>
       ))}
     </div>
   );
 
-  const alphabetItems: PracticeItem[] = ALPHABET_DATA.map(a => ({ text: a.letter, romanized: a.romanized, meaning: a.romanized, kannada: a.kannada }));
-  const wordItems: PracticeItem[] = BASIC_WORDS.map(w => ({ text: w.word, romanized: w.romanized, meaning: w.meaning, kannada: w.kannada }));
-  const sentenceItems: PracticeItem[] = SENTENCES.map(s => ({ text: s.sentence, romanized: s.romanized, meaning: s.meaning, kannada: s.kannada }));
+  // Language selection view
+  if (!selectedLangId || !pronunciationData) {
+    return (
+      <div className="px-4 pt-6 pb-4 space-y-5 max-w-3xl mx-auto">
+        <div>
+          <h1 className="text-xl font-bold">🎤 Pronunciation Practice</h1>
+          <p className="text-sm text-muted-foreground">Select a language to practice pronunciation</p>
+        </div>
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+          {languages?.map((lang) => {
+            const hasData = getPronunciationData(lang.code);
+            return (
+              <motion.div key={lang.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
+                <Card
+                  className={`p-4 cursor-pointer hover:shadow-elevated transition-all text-center ${hasData ? '' : 'opacity-50'}`}
+                  onClick={() => hasData && setSelectedLangId(lang.id)}
+                >
+                  <span className="text-3xl block mb-2">{lang.flag_emoji}</span>
+                  <p className="font-semibold text-sm">{lang.name}</p>
+                  <p className="text-xs text-muted-foreground">{lang.native_name}</p>
+                  {!hasData && <p className="text-[10px] text-muted-foreground mt-1">Coming soon</p>}
+                </Card>
+              </motion.div>
+            );
+          })}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="px-4 pt-6 pb-4 space-y-5 max-w-3xl mx-auto">
-      <div>
-        <h1 className="text-xl font-bold">🎤 Pronunciation Practice</h1>
-        <p className="text-sm text-muted-foreground">Learn Kannada sounds step by step</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-xl font-bold">🎤 Pronunciation Practice</h1>
+          <p className="text-sm text-muted-foreground">
+            {selectedLang?.flag_emoji} {selectedLang?.name}
+          </p>
+        </div>
+        <Button variant="outline" size="sm" onClick={() => { setSelectedLangId(''); setSelectedItem(null); setResult(null); }}>
+          <Globe className="w-4 h-4 mr-1" /> Change
+        </Button>
       </div>
 
       {/* Progress Summary */}
@@ -313,21 +293,21 @@ export default function Pronunciation() {
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={(v) => { setActiveTab(v); setSelectedItem(null); setResult(null); setAiFeedback(''); }}>
         <TabsList className="w-full grid grid-cols-3">
-          <TabsTrigger value="alphabet">ಅಕ್ಷರ Alphabet</TabsTrigger>
-          <TabsTrigger value="words">ಪದ Words</TabsTrigger>
-          <TabsTrigger value="sentences">ವಾಕ್ಯ Sentences</TabsTrigger>
+          <TabsTrigger value="alphabet">Alphabet</TabsTrigger>
+          <TabsTrigger value="words">Words</TabsTrigger>
+          <TabsTrigger value="sentences">Sentences</TabsTrigger>
         </TabsList>
 
         <TabsContent value="alphabet" className="mt-4 space-y-4">
-          {!selectedItem && renderItemGrid(alphabetItems, true)}
+          {!selectedItem && renderItemGrid(pronunciationData.alphabet, true)}
         </TabsContent>
 
         <TabsContent value="words" className="mt-4 space-y-4">
-          {!selectedItem && renderItemGrid(wordItems)}
+          {!selectedItem && renderItemGrid(pronunciationData.words)}
         </TabsContent>
 
         <TabsContent value="sentences" className="mt-4 space-y-4">
-          {!selectedItem && renderItemGrid(sentenceItems)}
+          {!selectedItem && renderItemGrid(pronunciationData.sentences)}
         </TabsContent>
       </Tabs>
 
@@ -338,12 +318,8 @@ export default function Pronunciation() {
             {/* Target */}
             <Card className="p-6 text-center shadow-elevated">
               <p className="text-3xl font-bold mb-2">{selectedItem.text}</p>
-              <p className="text-sm text-muted-foreground italic">{selectedItem.romanized}</p>
-              <p className="text-base text-primary font-medium mt-1">{selectedItem.meaning}</p>
-              <p className="text-xs text-muted-foreground mt-2">
-                <BookOpen className="w-3 h-3 inline mr-1" />
-                {selectedItem.kannada}
-              </p>
+              <p className="text-sm text-muted-foreground italic">{selectedItem.phonetic}</p>
+              <p className="text-base text-primary font-medium mt-1">{selectedItem.translation}</p>
               <Button variant="ghost" size="sm" className="mt-3" onClick={() => speak(selectedItem.text)}>
                 <Volume2 className="w-4 h-4 mr-1" /> Listen
               </Button>
@@ -435,6 +411,28 @@ export default function Pronunciation() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Practice History */}
+      {history && history.length > 0 && !selectedItem && (
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
+          <h3 className="text-sm font-semibold mb-2">Recent Practice</h3>
+          <div className="space-y-2">
+            {history.slice(0, 5).map((h: any) => (
+              <Card key={h.id} className="p-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium truncate max-w-[200px]">{h.expected_sentence}</p>
+                    <p className="text-[10px] text-muted-foreground capitalize">{h.practice_type}</p>
+                  </div>
+                  <span className={`text-sm font-bold ${Number(h.accuracy_score) >= 70 ? 'text-primary' : 'text-destructive'}`}>
+                    {Number(h.accuracy_score)}%
+                  </span>
+                </div>
+              </Card>
+            ))}
+          </div>
+        </motion.div>
+      )}
     </div>
   );
 }

@@ -22,6 +22,8 @@ export interface Profile {
 export interface Lesson {
   id: string;
   language_id: string;
+  language_from_id: string | null;
+  language_to_id: string | null;
   title: string;
   description: string | null;
   difficulty_level: number;
