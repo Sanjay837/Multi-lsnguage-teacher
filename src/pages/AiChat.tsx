@@ -89,6 +89,7 @@ export default function AiChat() {
         body: JSON.stringify({
           messages: contextMessages,
           targetLanguage: profile?.target_language_id || null,
+          languageName: null, // resolved dynamically by the edge function
         }),
       });
 
