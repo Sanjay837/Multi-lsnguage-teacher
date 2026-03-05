@@ -276,7 +276,9 @@ export type Database = {
           difficulty_level: number | null
           id: string
           is_published: boolean | null
+          language_from_id: string | null
           language_id: string
+          language_to_id: string | null
           lesson_type: string
           order_index: number | null
           title: string
@@ -290,7 +292,9 @@ export type Database = {
           difficulty_level?: number | null
           id?: string
           is_published?: boolean | null
+          language_from_id?: string | null
           language_id: string
+          language_to_id?: string | null
           lesson_type?: string
           order_index?: number | null
           title: string
@@ -304,7 +308,9 @@ export type Database = {
           difficulty_level?: number | null
           id?: string
           is_published?: boolean | null
+          language_from_id?: string | null
           language_id?: string
+          language_to_id?: string | null
           lesson_type?: string
           order_index?: number | null
           title?: string
@@ -312,8 +318,22 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "lessons_language_from_id_fkey"
+            columns: ["language_from_id"]
+            isOneToOne: false
+            referencedRelation: "languages"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "lessons_language_id_fkey"
             columns: ["language_id"]
+            isOneToOne: false
+            referencedRelation: "languages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lessons_language_to_id_fkey"
+            columns: ["language_to_id"]
             isOneToOne: false
             referencedRelation: "languages"
             referencedColumns: ["id"]
@@ -377,6 +397,7 @@ export type Database = {
           created_at: string
           expected_sentence: string
           id: string
+          language_id: string | null
           mistake_words: Json
           practice_type: string
           spoken_sentence: string
@@ -387,6 +408,7 @@ export type Database = {
           created_at?: string
           expected_sentence: string
           id?: string
+          language_id?: string | null
           mistake_words?: Json
           practice_type?: string
           spoken_sentence: string
@@ -397,12 +419,21 @@ export type Database = {
           created_at?: string
           expected_sentence?: string
           id?: string
+          language_id?: string | null
           mistake_words?: Json
           practice_type?: string
           spoken_sentence?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "pronunciation_practice_language_id_fkey"
+            columns: ["language_id"]
+            isOneToOne: false
+            referencedRelation: "languages"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       quiz_questions: {
         Row: {
