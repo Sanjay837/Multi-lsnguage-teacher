@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { useLanguage } from '@/hooks/useLanguage';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -23,7 +24,8 @@ interface Flashcard {
 }
 
 export default function Flashcards() {
-  const { user, profile } = useAuth();
+  const { user } = useAuth();
+  const { activeLanguage } = useLanguage();
   const queryClient = useQueryClient();
   const [mode, setMode] = useState<'list' | 'review' | 'add'>('list');
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -33,13 +35,14 @@ export default function Flashcards() {
   const [newTranslation, setNewTranslation] = useState('');
   const [newPronunciation, setNewPronunciation] = useState('');
 
+  const langId = activeLanguage?.id;
+
   const { data: flashcards = [], isLoading } = useQuery({
-    queryKey: ['flashcards'],
+    queryKey: ['flashcards', langId],
     queryFn: async () => {
-      const { data } = await supabase
-        .from('flashcards')
-        .select('*')
-        .order('next_review_at', { ascending: true });
+      let query = supabase.from('flashcards').select('*').order('next_review_at', { ascending: true });
+      if (langId) query = query.eq('language_id', langId);
+      const { data } = await query;
       return (data || []) as Flashcard[];
     },
   });
@@ -52,15 +55,13 @@ export default function Flashcards() {
         word: newWord.trim(),
         translation: newTranslation.trim(),
         pronunciation: newPronunciation.trim() || null,
-        language_id: profile?.target_language_id || null,
+        language_id: langId || null,
       });
       if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['flashcards'] });
-      setNewWord('');
-      setNewTranslation('');
-      setNewPronunciation('');
+      setNewWord(''); setNewTranslation(''); setNewPronunciation('');
       setMode('list');
       toast.success('Flashcard added!');
     },
@@ -85,13 +86,8 @@ export default function Flashcards() {
   });
 
   const deleteMutation = useMutation({
-    mutationFn: async (id: string) => {
-      await supabase.from('flashcards').delete().eq('id', id);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['flashcards'] });
-      toast.success('Deleted');
-    },
+    mutationFn: async (id: string) => { await supabase.from('flashcards').delete().eq('id', id); },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['flashcards'] }); toast.success('Deleted'); },
   });
 
   const dueCards = flashcards.filter(f => !f.next_review_at || new Date(f.next_review_at) <= new Date());
@@ -109,8 +105,7 @@ export default function Flashcards() {
     if (currentIndex < reviewCards.length - 1) {
       setCurrentIndex(currentIndex + 1);
     } else {
-      setMode('list');
-      setCurrentIndex(0);
+      setMode('list'); setCurrentIndex(0);
       toast.success('Review session complete!');
     }
   };
@@ -121,7 +116,7 @@ export default function Flashcards() {
         <div>
           <h1 className="text-xl font-bold">Flashcards</h1>
           <p className="text-sm text-muted-foreground">
-            {dueCards.length} cards due for review
+            {activeLanguage ? `${activeLanguage.flag_emoji} ${activeLanguage.name} · ` : ''}{dueCards.length} cards due
           </p>
         </div>
         <div className="flex gap-2">
@@ -136,12 +131,11 @@ export default function Flashcards() {
         </div>
       </div>
 
-      {/* Add Form */}
       {mode === 'add' && (
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
           <Card className="p-4 shadow-card space-y-3">
-            <Input placeholder="Word (e.g., ನಮಸ್ಕಾರ)" value={newWord} onChange={e => setNewWord(e.target.value)} />
-            <Input placeholder="Translation (e.g., Hello)" value={newTranslation} onChange={e => setNewTranslation(e.target.value)} />
+            <Input placeholder="Word" value={newWord} onChange={e => setNewWord(e.target.value)} />
+            <Input placeholder="Translation" value={newTranslation} onChange={e => setNewTranslation(e.target.value)} />
             <Input placeholder="Pronunciation (optional)" value={newPronunciation} onChange={e => setNewPronunciation(e.target.value)} />
             <Button className="w-full bg-gradient-primary" onClick={() => addMutation.mutate()} disabled={addMutation.isPending || !newWord.trim() || !newTranslation.trim()}>
               {addMutation.isPending ? 'Adding...' : 'Add Flashcard'}
@@ -150,25 +144,16 @@ export default function Flashcards() {
         </motion.div>
       )}
 
-      {/* Review Mode */}
       {mode === 'review' && currentCard && (
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-4">
-          <p className="text-sm text-muted-foreground text-center">
-            {currentIndex + 1} / {reviewCards.length}
-          </p>
+          <p className="text-sm text-muted-foreground text-center">{currentIndex + 1} / {reviewCards.length}</p>
           <div className="perspective-1000" onClick={() => setFlipped(!flipped)}>
-            <motion.div
-              animate={{ rotateY: flipped ? 180 : 0 }}
-              transition={{ duration: 0.4 }}
-              style={{ transformStyle: 'preserve-3d' }}
-            >
+            <motion.div animate={{ rotateY: flipped ? 180 : 0 }} transition={{ duration: 0.4 }} style={{ transformStyle: 'preserve-3d' }}>
               <Card className="p-8 text-center shadow-elevated min-h-[200px] flex flex-col items-center justify-center cursor-pointer">
                 {!flipped ? (
                   <>
                     <p className="text-3xl font-bold mb-2">{currentCard.word}</p>
-                    {currentCard.pronunciation && (
-                      <p className="text-sm text-muted-foreground">{currentCard.pronunciation}</p>
-                    )}
+                    {currentCard.pronunciation && <p className="text-sm text-muted-foreground">{currentCard.pronunciation}</p>}
                     <p className="text-xs text-muted-foreground mt-4">Tap to reveal</p>
                   </>
                 ) : (
@@ -193,7 +178,6 @@ export default function Flashcards() {
         </motion.div>
       )}
 
-      {/* List Mode */}
       {mode === 'list' && (
         <>
           <div className="relative">
@@ -208,7 +192,6 @@ export default function Flashcards() {
             <div className="text-center py-12">
               <Layers className="w-12 h-12 mx-auto text-muted-foreground/50 mb-3" />
               <p className="text-sm text-muted-foreground">No flashcards yet</p>
-              <p className="text-xs text-muted-foreground mt-1">Add words from lessons or create your own</p>
             </div>
           ) : (
             <div className="space-y-2">
@@ -225,9 +208,7 @@ export default function Flashcards() {
                         }`}>{card.difficulty}</span>
                       </div>
                       <p className="text-xs text-muted-foreground">{card.translation}</p>
-                      <p className="text-[10px] text-muted-foreground mt-0.5">
-                        Reviewed {card.review_count}x · {card.correct_count} correct
-                      </p>
+                      <p className="text-[10px] text-muted-foreground mt-0.5">Reviewed {card.review_count}x · {card.correct_count} correct</p>
                     </div>
                     <Button variant="ghost" size="icon" className="text-muted-foreground flex-shrink-0" onClick={() => deleteMutation.mutate(card.id)}>
                       <Trash2 className="w-4 h-4" />

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/hooks/useAuth';
+import { useLanguage } from '@/hooks/useLanguage';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Card } from '@/components/ui/card';
@@ -18,25 +18,27 @@ const difficultyColors: Record<number, string> = {
 };
 
 export default function Lessons() {
-  const { profile } = useAuth();
+  const { activeLanguage } = useLanguage();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const initialCategory = searchParams.get('category') || 'all';
   const [selectedCategory, setSelectedCategory] = useState(initialCategory);
 
+  const langId = activeLanguage?.id;
+
   const { data: lessons, isLoading } = useQuery({
-    queryKey: ['lessons', profile?.target_language_id],
+    queryKey: ['lessons', langId],
     queryFn: async () => {
-      if (!profile?.target_language_id) return [];
+      if (!langId) return [];
       const { data } = await supabase
         .from('lessons')
         .select('*')
-        .or(`language_id.eq.${profile.target_language_id},language_to_id.eq.${profile.target_language_id}`)
+        .or(`language_id.eq.${langId},language_to_id.eq.${langId}`)
         .eq('is_published', true)
         .order('order_index');
       return (data || []) as unknown as Lesson[];
     },
-    enabled: !!profile?.target_language_id,
+    enabled: !!langId,
   });
 
   const { data: progress } = useQuery({
@@ -48,18 +50,16 @@ export default function Lessons() {
   });
 
   const categories = ['all', ...Array.from(new Set(lessons?.map(l => l.category) || []))];
-  const filteredLessons = selectedCategory === 'all'
-    ? lessons
-    : lessons?.filter(l => l.category === selectedCategory);
+  const filteredLessons = selectedCategory === 'all' ? lessons : lessons?.filter(l => l.category === selectedCategory);
 
   const isCompleted = (lessonId: string) => progress?.some(p => p.lesson_id === lessonId && p.completed);
   const getScore = (lessonId: string) => progress?.find(p => p.lesson_id === lessonId);
 
-  if (!profile?.target_language_id) {
+  if (!activeLanguage) {
     return (
       <div className="px-4 pt-12 text-center">
         <BookOpen className="w-12 h-12 mx-auto text-muted-foreground mb-3" />
-        <p className="text-muted-foreground">Select a language in your profile first</p>
+        <p className="text-muted-foreground">Add a language from the sidebar first</p>
       </div>
     );
   }
@@ -68,10 +68,11 @@ export default function Lessons() {
     <div className="px-4 pt-8 space-y-4">
       <div>
         <h1 className="text-xl font-bold">Lessons</h1>
-        <p className="text-sm text-muted-foreground">Master each lesson step by step</p>
+        <p className="text-sm text-muted-foreground">
+          {activeLanguage.flag_emoji} {activeLanguage.name} · Master each lesson step by step
+        </p>
       </div>
 
-      {/* Category Filter */}
       <div className="flex gap-2 overflow-x-auto pb-1 -mx-4 px-4 scrollbar-hide">
         {categories.map(cat => (
           <button
@@ -103,25 +104,11 @@ export default function Lessons() {
             const completed = isCompleted(lesson.id);
             const scoreData = getScore(lesson.id);
             return (
-              <motion.div
-                key={lesson.id}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.05 }}
-              >
-                <Card
-                  className="p-4 shadow-card cursor-pointer hover:shadow-elevated transition-all"
-                  onClick={() => navigate(`/lessons/${lesson.id}`)}
-                >
+              <motion.div key={lesson.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: index * 0.05 }}>
+                <Card className="p-4 shadow-card cursor-pointer hover:shadow-elevated transition-all" onClick={() => navigate(`/lessons/${lesson.id}`)}>
                   <div className="flex items-start gap-3">
-                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${
-                      completed ? 'bg-success/10' : 'bg-secondary'
-                    }`}>
-                      {completed ? (
-                        <CheckCircle className="w-5 h-5 text-success" />
-                      ) : (
-                        <span className="text-sm font-bold text-muted-foreground">{index + 1}</span>
-                      )}
+                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${completed ? 'bg-success/10' : 'bg-secondary'}`}>
+                      {completed ? <CheckCircle className="w-5 h-5 text-success" /> : <span className="text-sm font-bold text-muted-foreground">{index + 1}</span>}
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="font-semibold text-sm">{lesson.title}</p>
@@ -130,13 +117,9 @@ export default function Lessons() {
                         <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${difficultyColors[lesson.difficulty_level] || ''}`}>
                           Level {lesson.difficulty_level}
                         </span>
-                        <Badge variant="secondary" className="text-[10px] capitalize">
-                          {lesson.category}
-                        </Badge>
+                        <Badge variant="secondary" className="text-[10px] capitalize">{lesson.category}</Badge>
                         {scoreData && (
-                          <span className="text-[10px] text-muted-foreground ml-auto">
-                            {scoreData.score}/{scoreData.max_score} pts
-                          </span>
+                          <span className="text-[10px] text-muted-foreground ml-auto">{scoreData.score}/{scoreData.max_score} pts</span>
                         )}
                       </div>
                     </div>
