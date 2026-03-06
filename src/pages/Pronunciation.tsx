@@ -2,16 +2,16 @@ import { useState, useRef, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { useLanguage } from '@/hooks/useLanguage';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Progress } from '@/components/ui/progress';
-import { Mic, MicOff, Volume2, RotateCcw, CheckCircle, XCircle, Loader2, Sparkles, Globe } from 'lucide-react';
+import { Mic, MicOff, Volume2, RotateCcw, CheckCircle, XCircle, Loader2, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
 import ReactMarkdown from 'react-markdown';
 import { getPronunciationData, getSpeechLang, getTTSLang, type PronunciationItem } from '@/lib/pronunciation-data';
-import type { Language } from '@/lib/types';
 
 interface ComparisonResult {
   expected: string;
@@ -21,7 +21,8 @@ interface ComparisonResult {
 }
 
 export default function Pronunciation() {
-  const { user, profile } = useAuth();
+  const { user } = useAuth();
+  const { activeLanguage } = useLanguage();
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState('alphabet');
   const [selectedItem, setSelectedItem] = useState<PronunciationItem | null>(null);
@@ -31,49 +32,33 @@ export default function Pronunciation() {
   const [error, setError] = useState('');
   const [aiFeedback, setAiFeedback] = useState('');
   const [loadingFeedback, setLoadingFeedback] = useState(false);
-  const [selectedLangId, setSelectedLangId] = useState<string>(profile?.target_language_id || '');
   const recognitionRef = useRef<any>(null);
   const transcriptRef = useRef('');
 
-  // Fetch all active languages
-  const { data: languages } = useQuery({
-    queryKey: ['languages-active'],
-    queryFn: async () => {
-      const { data } = await supabase.from('languages').select('*').eq('is_active', true).order('name');
-      return (data || []) as unknown as Language[];
-    },
-  });
-
-  // Get selected language details
-  const selectedLang = languages?.find(l => l.id === selectedLangId);
-  const langCode = selectedLang?.code || '';
+  const langCode = activeLanguage?.code || '';
+  const langId = activeLanguage?.id || '';
   const pronunciationData = getPronunciationData(langCode);
 
-  // Fetch history
   const { data: history } = useQuery({
-    queryKey: ['pronunciation-history', user?.id, selectedLangId],
+    queryKey: ['pronunciation-history', user?.id, langId],
     queryFn: async () => {
-      if (!user) return [];
-      let query = supabase
+      if (!user || !langId) return [];
+      const { data } = await supabase
         .from('pronunciation_practice')
         .select('*')
         .eq('user_id', user.id)
+        .eq('language_id', langId)
         .order('created_at', { ascending: false })
         .limit(20);
-      if (selectedLangId) {
-        query = query.eq('language_id', selectedLangId);
-      }
-      const { data } = await query;
       return data || [];
     },
-    enabled: !!user,
+    enabled: !!user && !!langId,
   });
 
   const avgAccuracy = history && history.length > 0
     ? Math.round(history.reduce((s, h) => s + Number(h.accuracy_score), 0) / history.length)
     : 0;
 
-  // Save result mutation
   const saveMutation = useMutation({
     mutationFn: async (data: { expected: string; spoken: string; accuracy: number; mistakes: string[] }) => {
       if (!user) return;
@@ -84,31 +69,21 @@ export default function Pronunciation() {
         accuracy_score: data.accuracy,
         mistake_words: data.mistakes as any,
         practice_type: activeTab,
-        language_id: selectedLangId || null,
+        language_id: langId || null,
       } as any);
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['pronunciation-history'] }),
   });
 
-  // AI feedback mutation
   const feedbackMutation = useMutation({
     mutationFn: async (data: { expected: string; spoken: string; accuracy: number; mistakeWords: string[]; languageName: string; languageCode: string }) => {
       setLoadingFeedback(true);
-      const { data: res, error } = await supabase.functions.invoke('pronunciation-feedback', {
-        body: data,
-      });
+      const { data: res, error } = await supabase.functions.invoke('pronunciation-feedback', { body: data });
       if (error) throw error;
       return res.feedback as string;
     },
-    onSuccess: (feedback) => {
-      setAiFeedback(feedback);
-      setLoadingFeedback(false);
-    },
-    onError: (err) => {
-      console.error('Feedback error:', err);
-      toast.error('Could not get AI feedback');
-      setLoadingFeedback(false);
-    },
+    onSuccess: (feedback) => { setAiFeedback(feedback); setLoadingFeedback(false); },
+    onError: () => { toast.error('Could not get AI feedback'); setLoadingFeedback(false); },
   });
 
   const speak = useCallback((text: string) => {
@@ -146,29 +121,19 @@ export default function Pronunciation() {
   };
 
   const startListening = () => {
-    setError('');
-    setResult(null);
-    setTranscript('');
-    setAiFeedback('');
+    setError(''); setResult(null); setTranscript(''); setAiFeedback('');
     transcriptRef.current = '';
-
     const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-    if (!SpeechRecognition) {
-      setError('Speech recognition not supported. Please use Chrome or Edge.');
-      return;
-    }
-
+    if (!SpeechRecognition) { setError('Speech recognition not supported. Please use Chrome or Edge.'); return; }
     const recognition = new SpeechRecognition();
     recognition.lang = getSpeechLang(langCode);
     recognition.continuous = false;
     recognition.interimResults = true;
-
     recognition.onresult = (event: any) => {
       const t = Array.from(event.results).map((r: any) => r[0].transcript).join('');
       transcriptRef.current = t;
       setTranscript(t);
     };
-
     recognition.onend = () => {
       setIsListening(false);
       const spokenText = transcriptRef.current;
@@ -179,38 +144,23 @@ export default function Pronunciation() {
         saveMutation.mutate({ expected: selectedItem.text, spoken: spokenText, accuracy: res.accuracy, mistakes });
         if (res.accuracy < 100) {
           feedbackMutation.mutate({
-            expected: selectedItem.text,
-            spoken: spokenText,
-            accuracy: res.accuracy,
-            mistakeWords: mistakes,
-            languageName: selectedLang?.name || 'Unknown',
-            languageCode: langCode,
+            expected: selectedItem.text, spoken: spokenText, accuracy: res.accuracy,
+            mistakeWords: mistakes, languageName: activeLanguage?.name || '', languageCode: langCode,
           });
         }
       }
     };
-
     recognition.onerror = (event: any) => {
       setIsListening(false);
       setError(event.error === 'no-speech' ? 'No speech detected. Try again.' : `Error: ${event.error}`);
     };
-
     recognitionRef.current = recognition;
     recognition.start();
     setIsListening(true);
   };
 
-  const stopListening = () => {
-    recognitionRef.current?.stop();
-    setIsListening(false);
-  };
-
-  const selectItem = (item: PronunciationItem) => {
-    setSelectedItem(item);
-    setResult(null);
-    setTranscript('');
-    setAiFeedback('');
-  };
+  const stopListening = () => { recognitionRef.current?.stop(); setIsListening(false); };
+  const selectItem = (item: PronunciationItem) => { setSelectedItem(item); setResult(null); setTranscript(''); setAiFeedback(''); };
 
   const renderItemGrid = (items: PronunciationItem[], isAlphabet = false) => (
     <div className={`grid ${isAlphabet ? 'grid-cols-4 sm:grid-cols-6' : 'grid-cols-1 sm:grid-cols-2'} gap-2`}>
@@ -234,51 +184,33 @@ export default function Pronunciation() {
     </div>
   );
 
-  // Language selection view
-  if (!selectedLangId || !pronunciationData) {
+  if (!activeLanguage) {
     return (
-      <div className="px-4 pt-6 pb-4 space-y-5 max-w-3xl mx-auto">
-        <div>
-          <h1 className="text-xl font-bold">🎤 Pronunciation Practice</h1>
-          <p className="text-sm text-muted-foreground">Select a language to practice pronunciation</p>
-        </div>
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-          {languages?.map((lang) => {
-            const hasData = getPronunciationData(lang.code);
-            return (
-              <motion.div key={lang.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
-                <Card
-                  className={`p-4 cursor-pointer hover:shadow-elevated transition-all text-center ${hasData ? '' : 'opacity-50'}`}
-                  onClick={() => hasData && setSelectedLangId(lang.id)}
-                >
-                  <span className="text-3xl block mb-2">{lang.flag_emoji}</span>
-                  <p className="font-semibold text-sm">{lang.name}</p>
-                  <p className="text-xs text-muted-foreground">{lang.native_name}</p>
-                  {!hasData && <p className="text-[10px] text-muted-foreground mt-1">Coming soon</p>}
-                </Card>
-              </motion.div>
-            );
-          })}
-        </div>
+      <div className="px-4 pt-6 pb-4 space-y-5 max-w-3xl mx-auto text-center">
+        <h1 className="text-xl font-bold">🎤 Pronunciation Practice</h1>
+        <p className="text-muted-foreground">Add a language from the sidebar to start practicing</p>
+      </div>
+    );
+  }
+
+  if (!pronunciationData) {
+    return (
+      <div className="px-4 pt-6 pb-4 space-y-5 max-w-3xl mx-auto text-center">
+        <h1 className="text-xl font-bold">🎤 Pronunciation Practice</h1>
+        <p className="text-muted-foreground">
+          Pronunciation data for {activeLanguage.name} {activeLanguage.flag_emoji} is coming soon!
+        </p>
       </div>
     );
   }
 
   return (
     <div className="px-4 pt-6 pb-4 space-y-5 max-w-3xl mx-auto">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-xl font-bold">🎤 Pronunciation Practice</h1>
-          <p className="text-sm text-muted-foreground">
-            {selectedLang?.flag_emoji} {selectedLang?.name}
-          </p>
-        </div>
-        <Button variant="outline" size="sm" onClick={() => { setSelectedLangId(''); setSelectedItem(null); setResult(null); }}>
-          <Globe className="w-4 h-4 mr-1" /> Change
-        </Button>
+      <div>
+        <h1 className="text-xl font-bold">🎤 Pronunciation Practice</h1>
+        <p className="text-sm text-muted-foreground">{activeLanguage.flag_emoji} {activeLanguage.name}</p>
       </div>
 
-      {/* Progress Summary */}
       {history && history.length > 0 && (
         <Card className="p-4">
           <div className="flex items-center justify-between mb-2">
@@ -290,32 +222,20 @@ export default function Pronunciation() {
         </Card>
       )}
 
-      {/* Tabs */}
       <Tabs value={activeTab} onValueChange={(v) => { setActiveTab(v); setSelectedItem(null); setResult(null); setAiFeedback(''); }}>
         <TabsList className="w-full grid grid-cols-3">
           <TabsTrigger value="alphabet">Alphabet</TabsTrigger>
           <TabsTrigger value="words">Words</TabsTrigger>
           <TabsTrigger value="sentences">Sentences</TabsTrigger>
         </TabsList>
-
-        <TabsContent value="alphabet" className="mt-4 space-y-4">
-          {!selectedItem && renderItemGrid(pronunciationData.alphabet, true)}
-        </TabsContent>
-
-        <TabsContent value="words" className="mt-4 space-y-4">
-          {!selectedItem && renderItemGrid(pronunciationData.words)}
-        </TabsContent>
-
-        <TabsContent value="sentences" className="mt-4 space-y-4">
-          {!selectedItem && renderItemGrid(pronunciationData.sentences)}
-        </TabsContent>
+        <TabsContent value="alphabet" className="mt-4 space-y-4">{!selectedItem && renderItemGrid(pronunciationData.alphabet, true)}</TabsContent>
+        <TabsContent value="words" className="mt-4 space-y-4">{!selectedItem && renderItemGrid(pronunciationData.words)}</TabsContent>
+        <TabsContent value="sentences" className="mt-4 space-y-4">{!selectedItem && renderItemGrid(pronunciationData.sentences)}</TabsContent>
       </Tabs>
 
-      {/* Practice Area */}
       <AnimatePresence>
         {selectedItem && (
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="space-y-4">
-            {/* Target */}
             <Card className="p-6 text-center shadow-elevated">
               <p className="text-3xl font-bold mb-2">{selectedItem.text}</p>
               <p className="text-sm text-muted-foreground italic">{selectedItem.phonetic}</p>
@@ -325,7 +245,6 @@ export default function Pronunciation() {
               </Button>
             </Card>
 
-            {/* Mic */}
             <div className="flex flex-col items-center gap-3">
               <Button
                 size="lg"
@@ -334,12 +253,9 @@ export default function Pronunciation() {
               >
                 {isListening ? <MicOff className="w-8 h-8" /> : <Mic className="w-8 h-8" />}
               </Button>
-              <p className="text-sm text-muted-foreground">
-                {isListening ? 'Listening... tap to stop' : 'Tap to speak'}
-              </p>
+              <p className="text-sm text-muted-foreground">{isListening ? 'Listening... tap to stop' : 'Tap to speak'}</p>
             </div>
 
-            {/* Transcript */}
             {transcript && (
               <Card className="p-4">
                 <p className="text-xs text-muted-foreground mb-1">You said:</p>
@@ -347,26 +263,16 @@ export default function Pronunciation() {
               </Card>
             )}
 
-            {/* Result */}
             {result && (
               <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
                 <Card className="p-4">
                   <div className="flex items-center gap-2 mb-3">
-                    {result.accuracy >= 70 ? (
-                      <CheckCircle className="w-5 h-5 text-primary" />
-                    ) : (
-                      <XCircle className="w-5 h-5 text-destructive" />
-                    )}
+                    {result.accuracy >= 70 ? <CheckCircle className="w-5 h-5 text-primary" /> : <XCircle className="w-5 h-5 text-destructive" />}
                     <span className="font-semibold">{result.accuracy}% accuracy</span>
                   </div>
                   <div className="flex flex-wrap gap-2">
                     {result.words.map((w, i) => (
-                      <span
-                        key={i}
-                        className={`px-2 py-1 rounded text-sm font-medium ${
-                          w.correct ? 'bg-primary/10 text-primary' : 'bg-destructive/10 text-destructive line-through'
-                        }`}
-                      >
+                      <span key={i} className={`px-2 py-1 rounded text-sm font-medium ${w.correct ? 'bg-primary/10 text-primary' : 'bg-destructive/10 text-destructive line-through'}`}>
                         {w.word}
                       </span>
                     ))}
@@ -375,7 +281,6 @@ export default function Pronunciation() {
               </motion.div>
             )}
 
-            {/* AI Feedback */}
             {loadingFeedback && (
               <Card className="p-4 flex items-center gap-2">
                 <Loader2 className="w-4 h-4 animate-spin text-primary" />
@@ -399,7 +304,6 @@ export default function Pronunciation() {
 
             {error && <p className="text-sm text-destructive text-center">{error}</p>}
 
-            {/* Actions */}
             <div className="flex gap-3">
               <Button variant="outline" className="flex-1" onClick={() => { setSelectedItem(null); setResult(null); setTranscript(''); setAiFeedback(''); }}>
                 Back to List
@@ -412,7 +316,6 @@ export default function Pronunciation() {
         )}
       </AnimatePresence>
 
-      {/* Practice History */}
       {history && history.length > 0 && !selectedItem && (
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
           <h3 className="text-sm font-semibold mb-2">Recent Practice</h3>
