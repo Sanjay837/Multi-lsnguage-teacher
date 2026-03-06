@@ -482,6 +482,38 @@ export type Database = {
           },
         ]
       }
+      user_languages: {
+        Row: {
+          added_at: string
+          id: string
+          is_active: boolean
+          language_id: string
+          user_id: string
+        }
+        Insert: {
+          added_at?: string
+          id?: string
+          is_active?: boolean
+          language_id: string
+          user_id: string
+        }
+        Update: {
+          added_at?: string
+          id?: string
+          is_active?: boolean
+          language_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_languages_language_id_fkey"
+            columns: ["language_id"]
+            isOneToOne: false
+            referencedRelation: "languages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_progress: {
         Row: {
           attempts: number | null
