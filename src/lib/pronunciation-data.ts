@@ -1260,7 +1260,6 @@ export const PRONUNCIATION_DATA: Record<string, LanguagePronunciationData> = {
 
 // Get pronunciation data for a language code, with fallback
 export function getPronunciationData(languageCode: string): LanguagePronunciationData | null {
-export function getPronunciationData(languageCode: string): LanguagePronunciationData | null {
   return PRONUNCIATION_DATA[languageCode] || null;
 }
 
