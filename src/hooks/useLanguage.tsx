@@ -1,17 +1,15 @@
-import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { createContext, useContext, useState, useCallback, ReactNode } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import type { Language } from '@/lib/types';
 
 interface LanguageContextType {
   activeLanguage: Language | null;
-  userLanguages: Language[];
   allLanguages: Language[];
   isLoading: boolean;
-  setActiveLanguage: (languageId: string) => Promise<void>;
-  addLanguage: (languageId: string) => Promise<void>;
-  removeLanguage: (languageId: string) => Promise<void>;
+  switchLanguage: (languageId: string) => Promise<void>;
+  removeActiveLanguage: () => Promise<void>;
 }
 
 const LanguageContext = createContext<LanguageContextType | undefined>(undefined);
@@ -20,7 +18,6 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
   const queryClient = useQueryClient();
 
-  // Fetch all active languages
   const { data: allLanguages = [], isLoading: loadingAll } = useQuery({
     queryKey: ['all-languages'],
     queryFn: async () => {
@@ -29,68 +26,58 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
     },
   });
 
-  // Fetch user's added languages with their active status
-  const { data: userLangRows = [], isLoading: loadingUser } = useQuery({
-    queryKey: ['user-languages', user?.id],
+  const { data: activeRow, isLoading: loadingActive } = useQuery({
+    queryKey: ['user-active-language', user?.id],
     queryFn: async () => {
-      if (!user) return [];
+      if (!user) return null;
       const { data } = await supabase
         .from('user_languages')
-        .select('language_id, is_active')
-        .eq('user_id', user.id);
-      return (data || []) as { language_id: string; is_active: boolean }[];
+        .select('language_id')
+        .eq('user_id', user.id)
+        .eq('is_active', true)
+        .maybeSingle();
+      return data as { language_id: string } | null;
     },
     enabled: !!user,
   });
 
-  // Derive user's languages and active language
-  const userLanguages = allLanguages.filter(l => userLangRows.some(ul => ul.language_id === l.id));
-  const activeRow = userLangRows.find(ul => ul.is_active);
   const activeLanguage = activeRow ? allLanguages.find(l => l.id === activeRow.language_id) || null : null;
 
-  const setActiveLanguage = useCallback(async (languageId: string) => {
-    if (!user) return;
-    // Deactivate all, then activate chosen
-    await supabase.from('user_languages').update({ is_active: false } as any).eq('user_id', user.id);
-    await supabase.from('user_languages').update({ is_active: true } as any).eq('user_id', user.id).eq('language_id', languageId);
-    // Also update profile target_language_id for backwards compatibility
-    await supabase.from('profiles').update({ target_language_id: languageId }).eq('user_id', user.id);
-    queryClient.invalidateQueries({ queryKey: ['user-languages'] });
+  const invalidateAll = useCallback(() => {
+    queryClient.invalidateQueries({ queryKey: ['user-active-language'] });
     queryClient.invalidateQueries({ queryKey: ['lessons'] });
     queryClient.invalidateQueries({ queryKey: ['flashcards'] });
     queryClient.invalidateQueries({ queryKey: ['pronunciation-history'] });
     queryClient.invalidateQueries({ queryKey: ['target-language'] });
-  }, [user, queryClient]);
+  }, [queryClient]);
 
-  const addLanguage = useCallback(async (languageId: string) => {
+  const switchLanguage = useCallback(async (languageId: string) => {
     if (!user) return;
-    const isFirst = userLangRows.length === 0;
+    // Remove all existing user_languages rows, then insert the new one
+    await supabase.from('user_languages').delete().eq('user_id', user.id);
     await supabase.from('user_languages').insert({
       user_id: user.id,
       language_id: languageId,
-      is_active: isFirst,
+      is_active: true,
     } as any);
-    if (isFirst) {
-      await supabase.from('profiles').update({ target_language_id: languageId }).eq('user_id', user.id);
-    }
-    queryClient.invalidateQueries({ queryKey: ['user-languages'] });
-  }, [user, userLangRows, queryClient]);
+    await supabase.from('profiles').update({ target_language_id: languageId }).eq('user_id', user.id);
+    invalidateAll();
+  }, [user, invalidateAll]);
 
-  const removeLanguage = useCallback(async (languageId: string) => {
+  const removeActiveLanguage = useCallback(async () => {
     if (!user) return;
-    await supabase.from('user_languages').delete().eq('user_id', user.id).eq('language_id', languageId);
-    queryClient.invalidateQueries({ queryKey: ['user-languages'] });
-  }, [user, queryClient]);
+    await supabase.from('user_languages').delete().eq('user_id', user.id);
+    await supabase.from('profiles').update({ target_language_id: null }).eq('user_id', user.id);
+    invalidateAll();
+  }, [user, invalidateAll]);
 
   return (
     <LanguageContext.Provider value={{
       activeLanguage,
-      userLanguages,
       allLanguages,
-      isLoading: loadingAll || loadingUser,
-      setActiveLanguage,
-      addLanguage,
-      removeLanguage,
+      isLoading: loadingAll || loadingActive,
+      switchLanguage,
+      removeActiveLanguage,
     }}>
       {children}
     </LanguageContext.Provider>
