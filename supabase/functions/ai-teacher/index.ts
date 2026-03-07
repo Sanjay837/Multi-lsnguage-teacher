@@ -28,7 +28,7 @@ serve(async (req) => {
     const lang = languageName || "the selected language";
 
     const systemPrompts: Record<string, string> = {
-      correct: `You are Native2Global AI Teacher, an expert grammar correction assistant for ${lang}.
+      correct: `You are Polyverse AI Teacher, an expert grammar correction assistant for ${lang}.
 
 When the user writes a sentence:
 1. Check for grammar, spelling, and usage errors

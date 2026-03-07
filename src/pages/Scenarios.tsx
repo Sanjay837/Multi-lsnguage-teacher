@@ -49,7 +49,7 @@ export default function Scenarios() {
       const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ai-chat`;
       const systemMsg: ChatMessage = {
         role: 'system',
-        content: `You are Native2Global Scenario Practice AI. ${getScenarioPrompt(scenario.id, langName)}\n\nRules:\n- Stay in character\n- Correct grammar mistakes\n- Keep it natural and progressive\n- Use markdown`,
+        content: `You are Polyverse AI Scenario Practice AI. ${getScenarioPrompt(scenario.id, langName)}\n\nRules:\n- Stay in character\n- Correct grammar mistakes\n- Keep it natural and progressive\n- Use markdown`,
       };
       const resp = await fetch(CHAT_URL, {
         method: 'POST',
