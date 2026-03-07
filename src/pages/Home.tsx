@@ -61,7 +61,7 @@ export default function Home() {
           <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-hero mb-4">
             <BookOpen className="w-8 h-8 text-primary-foreground" />
           </div>
-          <h1 className="text-2xl font-bold mb-2">Welcome to Native2Global!</h1>
+          <h1 className="text-2xl font-bold mb-2">Welcome to Polyverse AI!</h1>
           <p className="text-muted-foreground mb-6">Add a language from the sidebar to start learning</p>
         </motion.div>
       </div>

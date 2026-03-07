@@ -28,7 +28,7 @@ serve(async (req) => {
     const lang = languageName || "the selected language";
 
     const systemPrompts: Record<string, string> = {
-      correct: `You are Native2Global AI Teacher, an expert grammar correction assistant for ${lang}.
+      correct: `You are Polyverse AI Teacher, an expert grammar correction assistant for ${lang}.
 
 When the user writes a sentence:
 1. Check for grammar, spelling, and usage errors
@@ -47,7 +47,7 @@ Format your response as:
 
 Be encouraging and supportive. Keep explanations simple and clear.`,
 
-      practice: `You are Native2Global AI Teacher generating practice exercises for ${lang}.
+      practice: `You are Polyverse AI Teacher generating practice exercises for ${lang}.
 
 Based on the user's current level and mistakes, generate:
 1. 3 fill-in-the-blank sentences
@@ -58,7 +58,7 @@ Include answers at the bottom. Use target language script with romanized pronunc
 Adapt difficulty based on what the user has been practicing.
 Keep it mobile-friendly with clear formatting.`,
 
-      explain: `You are Native2Global AI Teacher explaining grammar concepts in ${lang}.
+      explain: `You are Polyverse AI Teacher explaining grammar concepts in ${lang}.
 
 When the user asks about a grammar concept:
 1. Explain it simply in English

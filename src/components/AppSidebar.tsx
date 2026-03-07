@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import {
   Home, BookOpen, MessageCircle, GraduationCap, BarChart3, User,
-  Layers, Mic, Theater, Trophy, Settings, Plus, Check, Globe, X,
+  Layers, Mic, Theater, Trophy, Settings, Globe, Trash2, RefreshCw,
 } from 'lucide-react';
 import { NavLink } from '@/components/NavLink';
 import { useLocation } from 'react-router-dom';
@@ -13,7 +13,8 @@ import {
 import { useAuth } from '@/hooks/useAuth';
 import { useLanguage } from '@/hooks/useLanguage';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import { ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuTrigger } from '@/components/ui/context-menu';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { toast } from 'sonner';
 
@@ -42,20 +43,22 @@ export function AppSidebar() {
   const collapsed = state === 'collapsed';
   const location = useLocation();
   const { profile } = useAuth();
-  const { activeLanguage, userLanguages, allLanguages, setActiveLanguage, addLanguage, removeLanguage } = useLanguage();
-  const [showAddModal, setShowAddModal] = useState(false);
+  const { activeLanguage, allLanguages, switchLanguage, removeActiveLanguage } = useLanguage();
+  const [showSwitchModal, setShowSwitchModal] = useState(false);
+  const [showRemoveDialog, setShowRemoveDialog] = useState(false);
 
   const isActive = (path: string) => location.pathname === path;
 
-  const availableToAdd = allLanguages.filter(l => !userLanguages.some(ul => ul.id === l.id));
-
-  const handleAddLanguage = async (langId: string) => {
-    await addLanguage(langId);
-    toast.success('Language added!');
+  const handleSwitch = async (langId: string) => {
+    await switchLanguage(langId);
+    setShowSwitchModal(false);
+    toast.success('Language switched!');
   };
 
-  const handleSetActive = async (langId: string) => {
-    await setActiveLanguage(langId);
+  const handleRemove = async () => {
+    await removeActiveLanguage();
+    setShowRemoveDialog(false);
+    toast.success('Language removed');
   };
 
   const renderGroup = (label: string, items: typeof mainItems) => (
@@ -94,7 +97,7 @@ export function AppSidebar() {
                   <BookOpen className="w-4 h-4 text-primary-foreground" />
                 </div>
                 <div>
-                  <h2 className="text-sm font-bold">Native2Global</h2>
+                  <h2 className="text-sm font-bold">Polyverse AI</h2>
                   <p className="text-[10px] text-muted-foreground">
                     {profile?.display_name || 'Learner'}
                   </p>
@@ -103,50 +106,47 @@ export function AppSidebar() {
             </div>
           )}
 
-          {/* Language Selector */}
+          {/* Single Active Language */}
           <SidebarGroup>
             <SidebarGroupLabel>
               <Globe className="w-3.5 h-3.5 mr-1 inline" />
-              Languages
+              Language
             </SidebarGroupLabel>
             <SidebarGroupContent>
               <div className="px-2 space-y-1">
-                {userLanguages.map((lang) => (
-                  <button
-                    key={lang.id}
-                    onClick={() => handleSetActive(lang.id)}
-                    className={`w-full flex items-center gap-2 px-2 py-1.5 rounded-lg text-sm transition-all ${
-                      activeLanguage?.id === lang.id
-                        ? 'bg-primary/10 text-primary font-medium'
-                        : 'text-sidebar-foreground hover:bg-sidebar-accent/50'
-                    }`}
-                  >
-                    <span className="text-base">{lang.flag_emoji}</span>
-                    {!collapsed && (
-                      <>
-                        <span className="flex-1 text-left truncate">{lang.name}</span>
-                        {activeLanguage?.id === lang.id && (
-                          <Check className="w-3.5 h-3.5 text-primary flex-shrink-0" />
+                {activeLanguage ? (
+                  <ContextMenu>
+                    <ContextMenuTrigger asChild>
+                      <button
+                        className="w-full flex items-center gap-2 px-2 py-2 rounded-lg text-sm bg-primary/10 text-primary font-medium cursor-context-menu"
+                      >
+                        <span className="text-lg">{activeLanguage.flag_emoji}</span>
+                        {!collapsed && (
+                          <>
+                            <span className="flex-1 text-left truncate">{activeLanguage.name}</span>
+                            <span className="text-[10px] bg-primary/20 text-primary px-1.5 py-0.5 rounded-full">Active</span>
+                          </>
                         )}
-                      </>
-                    )}
-                  </button>
-                ))}
-                {!collapsed && (
+                      </button>
+                    </ContextMenuTrigger>
+                    <ContextMenuContent>
+                      <ContextMenuItem onClick={() => setShowSwitchModal(true)}>
+                        <RefreshCw className="w-3.5 h-3.5 mr-2" />
+                        Switch Language
+                      </ContextMenuItem>
+                      <ContextMenuItem onClick={() => setShowRemoveDialog(true)} className="text-destructive focus:text-destructive">
+                        <Trash2 className="w-3.5 h-3.5 mr-2" />
+                        Remove Language
+                      </ContextMenuItem>
+                    </ContextMenuContent>
+                  </ContextMenu>
+                ) : (
                   <button
-                    onClick={() => setShowAddModal(true)}
-                    className="w-full flex items-center gap-2 px-2 py-1.5 rounded-lg text-sm text-muted-foreground hover:bg-sidebar-accent/50 hover:text-foreground transition-all"
+                    onClick={() => setShowSwitchModal(true)}
+                    className="w-full flex items-center gap-2 px-2 py-2 rounded-lg text-sm text-muted-foreground hover:bg-sidebar-accent/50 hover:text-foreground transition-all border border-dashed border-border"
                   >
-                    <Plus className="w-4 h-4" />
-                    <span>Add Language</span>
-                  </button>
-                )}
-                {collapsed && (
-                  <button
-                    onClick={() => setShowAddModal(true)}
-                    className="w-full flex items-center justify-center p-1.5 rounded-lg text-muted-foreground hover:bg-sidebar-accent/50"
-                  >
-                    <Plus className="w-4 h-4" />
+                    <Globe className="w-4 h-4" />
+                    {!collapsed && <span>Select a Language</span>}
                   </button>
                 )}
               </div>
@@ -159,19 +159,23 @@ export function AppSidebar() {
         </SidebarContent>
       </Sidebar>
 
-      {/* Add Language Modal */}
-      <Dialog open={showAddModal} onOpenChange={setShowAddModal}>
+      {/* Switch Language Modal */}
+      <Dialog open={showSwitchModal} onOpenChange={setShowSwitchModal}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>Add a Language</DialogTitle>
+            <DialogTitle>Choose a Language</DialogTitle>
           </DialogHeader>
           <ScrollArea className="max-h-[60vh]">
             <div className="grid grid-cols-2 gap-2 pr-2">
-              {availableToAdd.map((lang) => (
+              {allLanguages.map((lang) => (
                 <button
                   key={lang.id}
-                  onClick={() => { handleAddLanguage(lang.id); setShowAddModal(false); }}
-                  className="flex items-center gap-2 p-3 rounded-xl border border-border hover:border-primary/40 hover:bg-primary/5 transition-all text-left"
+                  onClick={() => handleSwitch(lang.id)}
+                  className={`flex items-center gap-2 p-3 rounded-xl border transition-all text-left ${
+                    activeLanguage?.id === lang.id
+                      ? 'border-primary bg-primary/10 ring-1 ring-primary/30'
+                      : 'border-border hover:border-primary/40 hover:bg-primary/5'
+                  }`}
                 >
                   <span className="text-xl">{lang.flag_emoji}</span>
                   <div className="min-w-0">
@@ -180,13 +184,26 @@ export function AppSidebar() {
                   </div>
                 </button>
               ))}
-              {availableToAdd.length === 0 && (
-                <p className="col-span-2 text-sm text-muted-foreground text-center py-4">All languages added!</p>
-              )}
             </div>
           </ScrollArea>
         </DialogContent>
       </Dialog>
+
+      {/* Remove Confirmation */}
+      <AlertDialog open={showRemoveDialog} onOpenChange={setShowRemoveDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remove this learning language?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will clear your active language. You can always select a new one.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleRemove}>Remove</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }

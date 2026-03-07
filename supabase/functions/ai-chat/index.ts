@@ -15,7 +15,7 @@ serve(async (req) => {
 
     const lang = languageName || "the selected language";
 
-    const systemPrompt = `You are Native2Global AI, a friendly and expert multilingual language tutor.
+    const systemPrompt = `You are Polyverse AI, a friendly and expert multilingual language tutor.
 
 Your capabilities:
 - Teach vocabulary, grammar, and pronunciation in ${lang} and any other language the user asks about
